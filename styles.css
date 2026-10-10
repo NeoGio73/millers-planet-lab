@@ -79,7 +79,8 @@ svg[hidden] { display: none; }
 
 /* transport */
 .transport { display: flex; flex-direction: column; gap: 10px; padding: 12px 16px; border-top: 1px solid var(--hair); flex: none; }
-#caption { font-size: 16px; color: #C9CFD4; min-height: 22px; }
+/* the narration for each beat: large enough to read from the back of a classroom; two lines reserved so the view doesn't jump */
+#caption { font-size: 20px; line-height: 1.35; color: var(--ink); min-height: 2.7em; max-width: 68ch; }
 .scrub { display: flex; align-items: center; gap: 12px; }
 .round { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; padding: 0; border: none; border-radius: 50%; background: var(--amber); color: var(--ground); cursor: pointer; }
 .round:hover { background: #EDB750; }
@@ -180,6 +181,7 @@ dialog li strong { color: var(--ink); font-weight: 600; }
   .beat-name { font-size: 22px; }
   .hint { right: 12px; top: 12px; }
   .listen { left: 12px; bottom: 12px; padding: 8px 10px; }
+  #caption { font-size: 18px; }
   .topbar { padding: 10px 16px; }
 }
 @media (max-width: 600px) {
