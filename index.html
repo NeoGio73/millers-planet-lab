@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mission to Miller's Planet: Time Dilation Lab</title>
+<meta name="description" content="An interactive physics simulation of gravitational time dilation, escape velocity and tides, following the Ranger's trip to Miller's planet.">
+<link rel="stylesheet" href="katex/katex.min.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="eyebrow">Time dilation lab</div>
+      <h1>Mission to Miller's planet</h1>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="btn" id="btn-about">About the model</button>
+      <button type="button" class="btn" id="btn-full">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Full screen</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage">
+
+    <section class="scene" aria-label="3D scene">
+      <div class="viewport" id="viewport">
+        <canvas id="gl" aria-label="Animated 3D view of the mission"></canvas>
+        <div id="fade" aria-hidden="true"></div>
+        <div id="labels" aria-hidden="true"></div>
+        <div class="hud beat-title">
+          <div class="eyebrow accent" id="beat-count">Beat 1 of 6</div>
+          <div class="beat-name" id="beat-name">Arrival</div>
+        </div>
+        <div class="hud hint" id="hint">
+          <svg aria-hidden="true" width="14" height="14" viewBox="0 0 14 14"><path d="M7 1.5v11M1.5 7h11M5 3.5l2-2 2 2M5 10.5l2 2 2-2M3.5 5l-2 2 2 2M10.5 5l2 2-2 2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span>Drag to look around</span>
+        </div>
+        <div id="start" class="overlay">
+          <div class="overlay-card">
+            <div class="eyebrow accent">Mission briefing</div>
+            <p>The Endurance is parked far from the black hole Gargantua. You are about to take the Ranger down to Miller's planet, where one hour costs seven years on Earth.</p>
+            <button type="button" class="btn primary" id="btn-start">Start the mission</button>
+          </div>
+        </div>
+        <div id="loading" class="overlay">
+          <div class="overlay-card">
+            <div class="eyebrow accent">Loading</div>
+            <p id="loading-text">Fetching the Ranger, the Endurance and Gargantua…</p>
+            <div class="bar"><div id="loading-bar"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="transport">
+        <p id="caption" aria-live="polite"></p>
+        <div class="scrub">
+          <button type="button" class="round" id="btn-play" aria-label="Play">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" id="ico-play"><path d="M6 3.5v11l9-5.5z" fill="currentColor"/></svg>
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" id="ico-pause" hidden><path d="M5.5 3.5v11M12.5 3.5v11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+          </button>
+          <label class="sr-only" for="scrub">Position within this beat</label>
+          <input type="range" id="scrub" min="0" max="1000" step="1" value="0">
+          <button type="button" class="btn" id="btn-next">Next beat</button>
+        </div>
+        <nav class="beats" id="beats" aria-label="Animation beats"></nav>
+      </div>
+    </section>
+
+    <aside class="panel" aria-label="Physics panel">
+
+      <section class="clocks" aria-label="Mission clocks">
+        <div class="clocks-head">
+          <h2>Mission clocks</h2>
+          <span class="muted">time since the Ranger undocked</span>
+        </div>
+        <div class="clock-grid">
+          <div class="clock">
+            <div class="who"><i class="mk mk-ranger"></i>Ranger crew</div>
+            <div class="val" id="ck-ranger">0:00:00</div>
+            <div class="sub">rate <span id="rt-ranger">0.9950</span></div>
+          </div>
+          <div class="clock">
+            <div class="who"><i class="mk mk-endurance"></i>Endurance</div>
+            <div class="val" id="ck-endurance">0 s</div>
+            <div class="sub">rate <span id="rt-endurance">0.9950</span></div>
+          </div>
+          <div class="clock">
+            <div class="who"><i class="mk mk-earth"></i>Earth</div>
+            <div class="val" id="ck-earth">0 s</div>
+            <div class="sub">rate 1, the reference</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="tabs" role="tablist" aria-label="Formula sets">
+        <button type="button" role="tab" id="tab-time" aria-controls="panel-time" aria-selected="true">Time dilation</button>
+        <button type="button" role="tab" id="tab-escape" aria-controls="panel-escape" aria-selected="false">Escape velocity</button>
+        <button type="button" role="tab" id="tab-wave" aria-controls="panel-wave" aria-selected="false">The wave</button>
+      </div>
+
+      <!-- TIME DILATION -->
+      <div class="tabpanel" role="tabpanel" id="panel-time" aria-labelledby="tab-time">
+        <div class="card">
+          <div class="card-label">Gravitational time dilation</div>
+          <div class="formula" data-tex="d\tau = dt\,\sqrt{1-\dfrac{r_s}{r}}\qquad\quad r_s=\dfrac{2GM}{c^2}"></div>
+          <p class="note"><span data-tex="d\tau"></span> is a tick of a clock sitting at distance <span data-tex="r"></span> from Gargantua. <span data-tex="dt"></span> is the same tick on a far-away clock such as Earth's. Gargantua holds 100 million Suns, so <span data-tex="r_s"></span> is 2.95 × 10<sup>8</sup> km, about 2 AU.</p>
+        </div>
+
+        <section>
+          <h3>Clock rates right now</h3>
+          <p class="muted small">Seconds that tick by while one second passes on Earth</p>
+          <div class="rows">
+            <div class="row"><span class="name"><i class="mk mk-earth"></i>Earth <small>far from Gargantua</small></span><span class="num">1.0000</span></div>
+            <div class="row"><span class="name"><i class="mk mk-endurance"></i>Endurance <small>r = <span id="tx-xE">100</span> r<sub>s</sub></small></span><span class="num" id="tr-endurance">0.9950</span></div>
+            <div class="row"><span class="name"><i class="mk mk-ranger"></i>Ranger <small id="tx-ranger-where">docked</small></span><span class="num" id="tr-ranger">0.9950</span></div>
+            <div class="row"><span class="name"><i class="mk mk-planet"></i>Miller's planet <small>just above r<sub>s</sub></small></span><span class="num">1.63 × 10<sup>−5</sup></span></div>
+          </div>
+        </section>
+
+        <section>
+          <h3>One hour aboard the Ranger right now equals</h3>
+          <div class="tiles">
+            <div class="tile"><span class="big" id="hr-earth">1.005 h</span><span class="muted small">on Earth</span></div>
+            <div class="tile"><span class="big" id="hr-endurance">1.000 h</span><span class="muted small">on the Endurance</span></div>
+          </div>
+        </section>
+
+        <section>
+          <h3>Clock rate against distance</h3>
+          <div id="plot" class="plot"></div>
+          <p class="muted small">Distance from Gargantua in Schwarzschild radii, log scale</p>
+        </section>
+
+        <div class="card">
+          <div class="card-label">Earth time is an integral over the Ranger's flight</div>
+          <div class="formula" data-tex="\Delta t_{\text{Earth}}=\int_0^{\tau}\frac{d\tau'}{\sqrt{1-r_s/r(\tau')}}"></div>
+          <p class="note" id="integral-note"></p>
+          <div class="formula small" data-tex="\int\!\sqrt{\frac{x}{x-1}}\,dx=\sqrt{x(x-1)}+\ln\!\left(\sqrt{x}+\sqrt{x-1}\right)"></div>
+          <p class="note">Here <span data-tex="x=r/r_s"></span>. The simulation lets <span data-tex="r"></span> fall steadily on the Ranger's own clock, which turns the flight integral into this one. Differentiate the right side to check it.</p>
+        </div>
+
+        <section class="control">
+          <div class="control-head"><label for="sl-xE">Endurance parking orbit</label><output id="out-xE" for="sl-xE">100 r_s</output></div>
+          <input type="range" id="sl-xE" min="2" max="200" step="1" value="100">
+          <p class="muted small" id="xE-note"></p>
+        </section>
+
+        <section class="control">
+          <div class="control-head"><label for="sl-surface">Time on the surface</label><output id="out-surface" for="sl-surface">3 h 20 min</output></div>
+          <input type="range" id="sl-surface" min="30" max="300" step="5" value="200">
+          <p class="muted small" id="surface-note"></p>
+        </section>
+      </div>
+
+      <!-- ESCAPE VELOCITY -->
+      <div class="tabpanel" role="tabpanel" id="panel-escape" aria-labelledby="tab-escape" hidden>
+        <div class="card">
+          <div class="card-label">Escape velocity</div>
+          <div class="formula" data-tex="v_{\text{esc}}=\sqrt{\dfrac{2GM}{r}}"></div>
+          <div class="formula small" data-tex="\tfrac12\,m\,v_{\text{esc}}^{2}=\int_{r}^{\infty}\frac{GMm}{r'^{2}}\,dr'=\frac{GMm}{r}"></div>
+          <p class="note">The kinetic energy at launch has to pay for all the work gravity does on the way out. Run the film backwards and it is the speed gained falling in from far away.</p>
+        </div>
+
+        <section>
+          <h3>Escape speed from</h3>
+          <div class="rows">
+            <div class="row"><span class="name"><i class="mk mk-earth"></i>Earth's surface <small>for comparison</small></span><span class="num">11.2 km/s</span></div>
+            <div class="row"><span class="name"><i class="mk mk-planet"></i>Miller's planet <small id="tx-planet">1.3 g, radius 1.3 Earths</small></span><span class="num" id="ve-planet">14.5 km/s</span></div>
+            <div class="row"><span class="name"><i class="mk mk-endurance"></i>Gargantua, from the Endurance <small>r = <span id="tx-xE2">100</span> r<sub>s</sub></small></span><span class="num" id="ve-endurance">0.100 c</span></div>
+            <div class="row"><span class="name"><i class="mk mk-ranger"></i>Gargantua, from the Ranger <small id="tx-ranger-where2">docked</small></span><span class="num" id="ve-ranger">0.100 c</span></div>
+            <div class="row"><span class="name"><i class="mk mk-hole"></i>Gargantua, from the horizon <small>r = r<sub>s</sub>, nothing gets out</small></span><span class="num">c</span></div>
+          </div>
+        </section>
+
+        <section class="control">
+          <div class="control-head"><label for="sl-radius">Radius of Miller's planet</label><output id="out-radius" for="sl-radius">1.3 Earths</output></div>
+          <input type="range" id="sl-radius" min="0.6" max="2.5" step="0.1" value="1.3">
+          <p class="muted small" id="radius-note"></p>
+        </section>
+
+        <div class="card">
+          <div class="card-label">Orbit speed</div>
+          <div class="formula" data-tex="v_{\text{orb}}=\sqrt{\dfrac{GM}{r}}=\dfrac{v_{\text{esc}}}{\sqrt2}"></div>
+          <p class="note" id="orbit-note"></p>
+        </div>
+
+        <div class="card">
+          <div class="card-label">The link to the clocks</div>
+          <div class="formula" data-tex="\sqrt{1-\dfrac{v_{\text{esc}}^{2}}{c^{2}}}=\sqrt{1-\dfrac{r_s}{r}}"></div>
+          <p class="note">Put the escape speed into the special relativity factor and the gravitational time dilation factor comes out. Where the escape speed reaches <span data-tex="c"></span>, <span data-tex="r=r_s"></span>.</p>
+        </div>
+      </div>
+
+      <!-- THE WAVE -->
+      <div class="tabpanel" role="tabpanel" id="panel-wave" aria-labelledby="tab-wave" hidden>
+        <div class="card">
+          <div class="card-label">Why the ocean piles up: tidal acceleration</div>
+          <div class="formula" data-tex="g(r)=\frac{GM}{r^{2}}\quad\Rightarrow\quad\frac{dg}{dr}=-\frac{2GM}{r^{3}}"></div>
+          <div class="formula small" data-tex="\Delta g\approx\left|\frac{dg}{dr}\right|R=\frac{2GM}{r^{3}}\,R"></div>
+          <p class="note">Gargantua pulls harder on the near side of the planet than on its centre, a planet radius <span data-tex="R"></span> closer. That difference stretches the planet and heaps up its ocean; as the planet rocks, the water sloshes into waves about 1.2 km tall.</p>
+        </div>
+
+        <section class="control">
+          <div class="control-head"><label for="sl-mass">Mass of the black hole</label><output id="out-mass" for="sl-mass">10<sup>8</sup> Suns</output></div>
+          <input type="range" id="sl-mass" min="7" max="9" step="0.05" value="8">
+          <div class="tiles">
+            <div class="tile"><span class="big" id="tide-dg">8.5 m/s²</span><span class="muted small">stretch at the planet's surface</span></div>
+            <div class="tile"><span class="big" id="tide-ratio">0.67 ×</span><span class="muted small">the planet's own gravity</span></div>
+          </div>
+          <p class="muted small" id="tide-note"></p>
+        </section>
+
+        <div class="card">
+          <div class="card-label">How fast it closes in: speed of a long wave</div>
+          <div class="formula" data-tex="v=\sqrt{g\,h}"></div>
+          <p class="note">Gravity here is 1.3 times Earth's, 12.7 m/s². With about 1.2 km of water under the crest the wave moves at 124 m/s, or 445 km/h.</p>
+        </div>
+
+        <section class="control">
+          <div class="control-head"><label for="sl-wave">Distance to the wave when sighted</label><output id="out-wave" for="sl-wave">20 km</output></div>
+          <input type="range" id="sl-wave" min="5" max="40" step="5" value="20">
+          <div class="tiles">
+            <div class="tile"><span class="big" id="wave-eta">2 min 42 s</span><span class="muted small">until it reaches the Ranger</span></div>
+            <div class="tile"><span class="big" id="wave-earth">115 days</span><span class="muted small">pass on Earth meanwhile</span></div>
+          </div>
+        </section>
+      </div>
+
+    </aside>
+  </main>
+</div>
+
+<dialog id="about" aria-labelledby="about-title">
+  <form method="dialog">
+    <div class="eyebrow accent">About the model</div>
+    <h2 id="about-title">What this simulation assumes</h2>
+    <ul>
+      <li><strong>One formula.</strong> Every clock uses the time dilation of a clock at rest near a non-spinning black hole, <span data-tex="d\tau=dt\sqrt{1-r_s/r}"></span>. Speed effects are left out.</li>
+      <li><strong>The film's factor.</strong> One hour on Miller's planet is seven years on Earth, a factor of 61,362. In this model a clock would have to sit within three parts in ten billion of the horizon to run that slowly, and nothing can orbit there.</li>
+      <li><strong>What the film really needs.</strong> Kip Thorne's answer is a black hole spinning within about one part in 100 trillion of the maximum, which lets a planet orbit just outside the horizon. That takes general relativity beyond this course.</li>
+      <li><strong>Simulation choices.</strong> The Endurance's parking distance, the 40-minute descent and ascent, and the planet's radius are adjustable assumptions. The film does not give them.</li>
+      <li><strong>From the film and the book.</strong> Gargantua's mass (100 million Suns), the planet's gravity (130% of Earth's), wave height (about 1.2 km) and Romilly's wait (23 years, 4 months, 8 days).</li>
+      <li><strong>Newtonian estimates.</strong> Escape speed, orbit speed and the tidal stretch use Newton's gravity, which is only a rough guide this close to a black hole.</li>
+    </ul>
+    <p class="muted small">An unofficial educational simulation inspired by the film Interstellar (2014). Not affiliated with or endorsed by its makers. Physics background: Kip Thorne, The Science of Interstellar (2014). <span id="credits"></span></p>
+    <button type="submit" class="btn primary">Close</button>
+  </form>
+</dialog>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
