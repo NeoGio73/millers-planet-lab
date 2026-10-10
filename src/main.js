@@ -281,9 +281,22 @@ async function boot() {
   viewport.addEventListener('dblclick', (e) => { if (!e.target.closest('button')) { director.look.yaw = 0; director.look.pitch = 0; director.look.zoom = 1; } });
 
   // ---- render loop ----
+  const sim = { freeze: false };
+  // On a high-density screen with a modest graphics chip, step the resolution down until the animation runs smoothly.
+  let slowTime = 0, frames = 0;
+  function adapt(raw) {
+    if (document.hidden || raw > 0.5) return;                 // ignore pauses such as a hidden tab
+    frames++; slowTime += raw;
+    if (frames < 90) return;
+    const avg = slowTime / frames; frames = 0; slowTime = 0;
+    const pr = renderer.getPixelRatio();
+    if (avg > 1 / 40 && pr > 1) { renderer.setPixelRatio(Math.max(1, pr - 0.5)); resize(); }
+  }
   let lastT = performance.now(), time = 0;
   function tick(now) {
-    const dt = Math.min(0.05, Math.max(0, (now - lastT) / 1000)); lastT = now; time += dt;
+    if (sim.freeze) { lastT = now; requestAnimationFrame(tick); return; }      // used by the automated screenshot tests
+    const raw = Math.max(0, (now - lastT) / 1000), dt = Math.min(0.05, raw); lastT = now; time += dt;
+    adapt(raw);
     const out = director.frame(dt, time);
     const world = out.world === 'space' ? space : surface;
     if (out.world === 'space') { camera.near = 0.3; camera.far = 30000; } else { camera.near = 1; camera.far = 320000; }
@@ -307,7 +320,8 @@ async function boot() {
   director.frame(0, 0); renderer.render(space.scene, camera);
   renderer.compile(surface.scene, camera);
   $('loading').hidden = true;
-  window.__sim = { director, params, panel, space, surface, camera, renderer, goto(beat, p = 0) { begin(); director.playing = false; director.goto(beat, p); sync(); } };
+  Object.assign(sim, { director, params, panel, space, surface, camera, renderer, goto(beat, p = 0) { begin(); director.playing = false; director.goto(beat, p); sync(); } });
+  window.__sim = sim;
   requestAnimationFrame((t) => { lastT = t; tick(t); });
 }
 

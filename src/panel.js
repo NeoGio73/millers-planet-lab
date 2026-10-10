@@ -31,6 +31,7 @@ function rateHTML(v) {
 
 /** Distance in Schwarzschild radii, with more digits the closer it gets to the horizon. */
 function fmtX(x) {
+  if (x >= 2 && Math.abs(x - Math.round(x)) < 1e-9) return String(Math.round(x));     // slider values are whole numbers
   if (x >= 99.95) return x.toFixed(0);
   if (x >= 10) return x.toFixed(1);
   if (x >= 1.1) return x.toFixed(2);
@@ -154,9 +155,10 @@ function buildPlot(host) {
     // the Ranger's label yields when it sits on top of another mark's label
     const nearE = Math.hypot(rx - ex, ry - ey) < 30, nearP = Math.hypot(rx - px(1), ry - py(0)) < 30;
     rText.setAttribute('visibility', docked || nearE || nearP ? 'hidden' : 'visible');
-    const leftSide = rx > PLOT.w - PLOT.r - 70;
-    rText.setAttribute('text-anchor', leftSide ? 'end' : 'start');
-    rText.setAttribute('x', rx + (leftSide ? -10 : 10)); rText.setAttribute('y', ry + 17);
+    // the label sits in the empty space under the curve, left of the mark unless that would run off the plot
+    const right = rx < PLOT.l + 60;
+    rText.setAttribute('text-anchor', right ? 'start' : 'end');
+    rText.setAttribute('x', rx + (right ? 10 : -10)); rText.setAttribute('y', ry + 17);
   };
 }
 
@@ -270,7 +272,7 @@ export function createPanel({ params, onChange }) {
     if (m.phase === 'pre') {
       note = 'Nothing to add up yet: the Ranger is still docked. Press play and watch the two sides of the integral pull apart.';
     } else if (m.phase === 'descent') {
-      note = `${P.fmtDuration(m.tau)} on the Ranger’s clock so far, ${P.fmtDuration(m.earth)} on Earth’s: a gap of ${gap(m.earth, m.tau)}. The integrand stays close to 1 until r is nearly r<sub>s</sub>.`;
+      note = `${P.fmtDuration(m.tau)} on the Ranger’s clock so far, ${P.fmtDuration(m.earth)} on Earth’s: a gap of ${gap(m.earth, m.tau)}. The integrand stays close to 1 until r is within a few r<sub>s</sub>.`;
     } else if (m.phase === 'surface') {
       const surf = m.tau - params.descentMin;
       note = `On the surface r is fixed, so the integrand is the constant 61,362 and the integral is a product: ${fmtMinutes(surf)} here is ${P.fmtDuration(surf * P.SURFACE_FACTOR)} on Earth.`;

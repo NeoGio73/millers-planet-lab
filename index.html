@@ -140,7 +140,7 @@
           <div class="card-label">Earth time is an integral over the Ranger's flight</div>
           <div class="formula" data-tex="\Delta t_{\text{Earth}}=\int_0^{\tau}\frac{d\tau'}{\sqrt{1-r_s/r(\tau')}}"></div>
           <p class="note" id="integral-note"></p>
-          <div class="formula small" data-tex="\int\!\sqrt{\frac{x}{x-1}}\,dx=\sqrt{x(x-1)}+\ln\!\left(\sqrt{x}+\sqrt{x-1}\right)"></div>
+          <div class="formula small" data-tex="\begin{aligned}\int\!\sqrt{\frac{x}{x-1}}\,dx&=\sqrt{x(x-1)}\\&\quad+\ln\!\left(\sqrt{x}+\sqrt{x-1}\right)\end{aligned}"></div>
           <p class="note">Here <span data-tex="x=r/r_s"></span>. The simulation lets <span data-tex="r"></span> fall steadily on the Ranger's own clock, which turns the flight integral into this one. Differentiate the right side to check it.</p>
         </div>
 
@@ -243,11 +243,12 @@
       <li><strong>One formula.</strong> Every clock uses the time dilation of a clock at rest near a non-spinning black hole, <span data-tex="d\tau=dt\sqrt{1-r_s/r}"></span>. Speed effects are left out.</li>
       <li><strong>The film's factor.</strong> One hour on Miller's planet is seven years on Earth, a factor of 61,362. In this model a clock would have to sit within three parts in ten billion of the horizon to run that slowly, and nothing can orbit there.</li>
       <li><strong>What the film really needs.</strong> Kip Thorne's answer is a black hole spinning within about one part in 100 trillion of the maximum, which lets a planet orbit just outside the horizon. That takes general relativity beyond this course.</li>
-      <li><strong>Simulation choices.</strong> The Endurance's parking distance, the 40-minute descent and ascent, and the planet's radius are adjustable assumptions. The film does not give them.</li>
+      <li><strong>Simulation choices.</strong> The Endurance's parking distance, the 40-minute descent and ascent, and the planet's radius are assumptions. The film does not give them.</li>
+      <li><strong>Not to scale.</strong> From 100 r<sub>s</sub>, the Ranger crosses about 195 AU, so a 40-minute descent would need an average speed of about 40<span data-tex="c"></span>, which is impossible. A real trip would take weeks. Out there clocks run close to Earth's, so the longer trip would add only hours to the gap, against the 23 years the surface costs. Distances in the 3D view are not to scale either.</li>
       <li><strong>From the film and the book.</strong> Gargantua's mass (100 million Suns), the planet's gravity (130% of Earth's), wave height (about 1.2 km) and Romilly's wait (23 years, 4 months, 8 days).</li>
       <li><strong>Newtonian estimates.</strong> Escape speed, orbit speed and the tidal stretch use Newton's gravity, which is only a rough guide this close to a black hole.</li>
     </ul>
-    <p class="muted small">An unofficial educational simulation inspired by the film Interstellar (2014). Not affiliated with or endorsed by its makers. Physics background: Kip Thorne, The Science of Interstellar (2014). <span id="credits"></span></p>
+    <p class="muted small">An unofficial educational simulation inspired by the film Interstellar (2014). Not affiliated with or endorsed by its makers. Physics background: Kip Thorne, The Science of Interstellar (2014).</p>
     <button type="submit" class="btn primary">Close</button>
   </form>
 </dialog>

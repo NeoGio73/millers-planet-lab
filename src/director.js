@@ -15,7 +15,7 @@ export const BEATS = [
   { id: 'wave', name: 'The wave', dur: 36, tab: 'wave', labels: ['ranger', 'wave'],
     captions: [[0, 'Those are not mountains. A wave tall enough to vanish into the cloud deck is closing in.'], [0.4, 'The wave lifts the Ranger up its face and into the clouds.'], [0.62, 'Engines flooded. Every minute spent waiting for them to drain costs 42.6 days on Earth.'], [0.88, 'Another wave is on the horizon.']] },
   { id: 'ascent', name: 'Ascent', dur: 24, tab: 'escape', labels: ['ranger', 'wave'],
-    captions: [[0, 'Engines drained, the Ranger lifts off ahead of the next wave.'], [0.3, 'Climbing away. Leaving the planet takes 14.5 km/s, and Gargantua’s pull is far stronger still.'], [0.72, 'The Endurance is ahead. The Ranger’s clock is running fast again.']] },
+    captions: [[0, 'Engines drained, the Ranger lifts off ahead of the next wave.'], [0.3, (params) => `Climbing away. Leaving the planet takes ${(P.vEscPlanet(params.planetRadius) / 1000).toFixed(1)} km/s, and Gargantua’s pull is far stronger still.`], [0.72, 'The Endurance is ahead. The Ranger’s clock is running fast again.']] },
   { id: 'reunion', name: 'Reunion', dur: 16, tab: 'time', labels: ['gargantua', 'endurance', 'ranger'],
     captions: [[0, 'Matching the Endurance’s spin to dock. A few hours have passed for the Ranger’s crew.'], [0.6, 'For Romilly, waiting aboard the Endurance, it has been more than twenty years.']] },
 ];
@@ -111,7 +111,7 @@ export class Director {
   get caption() {
     const list = BEATS[this.beat].captions; let text = list[0][1];
     for (const [at, t] of list) if (this.p >= at) text = t;
-    return text;
+    return typeof text === 'function' ? text(this.params) : text;      // some captions quote a live value
   }
 
   // ---- per-frame ----
