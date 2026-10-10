@@ -60,6 +60,15 @@ svg[hidden] { display: none; }
 .beat-title { left: 24px; top: 20px; display: flex; flex-direction: column; gap: 6px; padding: 10px 14px; background: rgba(8, 11, 14, 0.6); border-radius: 4px; }
 .beat-name { font-size: 30px; font-weight: 600; line-height: 1.1; }
 .hint { right: 20px; top: 20px; display: flex; align-items: center; gap: 8px; padding: 5px 9px; background: rgba(8, 11, 14, 0.74); border-radius: 3px; font-size: 13px; color: var(--ink2); transition: opacity 0.4s; }
+/* real time and ticks, shown while the Ranger is on the surface */
+.listen { left: 24px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; max-width: 340px; padding: 10px 12px; background: rgba(8, 11, 14, 0.74); border-radius: 4px; pointer-events: auto; cursor: default; }
+.listen[hidden] { display: none; }
+.listen-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.listen p { font-size: 13px; color: var(--ink2); }
+.chip { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; padding: 0 12px; background: transparent; border: 1px solid var(--line); border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.chip:hover { background: var(--raised); }
+.chip[aria-pressed=true] { border-color: var(--amber); background: rgba(227, 165, 53, 0.16); }
+.chip:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(4, 6, 10, 0.55); }
 .overlay[hidden] { display: none; }
 #loading { background: #04060A; }
@@ -170,7 +179,14 @@ dialog li strong { color: var(--ink); font-weight: 600; }
   .beat-title { left: 12px; top: 12px; }
   .beat-name { font-size: 22px; }
   .hint { right: 12px; top: 12px; }
+  .listen { left: 12px; bottom: 12px; padding: 8px 10px; }
   .topbar { padding: 10px 16px; }
+}
+@media (max-width: 600px) {
+  /* on small screens the controls move to the corner and the caption under the view explains real time */
+  .listen { left: auto; right: 8px; bottom: 8px; padding: 6px; }
+  .listen p { display: none; }
+  .chip { min-height: 36px; padding: 0 10px; font-size: 13px; }
 }
 @media (max-width: 480px) {
   .tabpanel, .clocks { padding-left: 16px; padding-right: 16px; }

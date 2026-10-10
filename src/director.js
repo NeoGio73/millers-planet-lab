@@ -70,6 +70,7 @@ export class Director {
     this.cp = V(0, 0, 10); this.ct = V(0, 0, 0);
     this.out = { world: 'space', fade: 0, phase: 'pre', s: 0, viewerX: params.xE, labels: [], cloudTime: 0, waveDistance: 0 };
     this.lastP = 0;
+    this.realTime = false;     // on the surface: play at the crew's true pace
 
     // geometry shared by the space beats
     this.axis = SPACE.enduranceAxis.clone();
@@ -104,10 +105,17 @@ export class Director {
     const changed = beat !== this.beat;
     this.beat = beat; this.p = clamp01(p); this.lastP = this.p;
     this.look.yaw = 0; this.look.pitch = 0; this.look.zoom = 1;
+    if (changed) this.realTime = false;
     this.surface.spray.clear();
     if (changed && this.onBeatChange) this.onBeatChange(this.beat);
   }
   seek(p) { this.p = clamp01(p); this.lastP = this.p; }
+  /** True while the current beat shows the Ranger on the surface, where real time applies. */
+  get onSurface() { const id = BEATS[this.beat].id; return id === 'landing' || id === 'wave'; }
+  /** Surface minutes (on the crew's clock) at progress p of the current beat. */
+  surfaceMinutesAt(p) {
+    return BEATS[this.beat].id === 'landing' ? LAND_MIN * p : waveBeatMinutes(this.params, p);
+  }
   get caption() {
     const list = BEATS[this.beat].captions; let text = list[0][1];
     for (const [at, t] of list) if (this.p >= at) text = t;
@@ -118,8 +126,14 @@ export class Director {
   frame(dt, time) {
     const b = BEATS[this.beat];
     if (this.playing) {
-      this.p += (dt * this.speed) / b.dur;
-      if (this.p >= 1) { this.p = 1; this.playing = false; if (this.onBeatEnd) this.onBeatEnd(this.beat); }
+      let dp = (dt * this.speed) / b.dur;
+      if (this.realTime && this.onSurface) {
+        // advance so that one real second is one second on the crew's clock
+        const e = 1e-4, a = Math.min(this.p, 1 - e), slope = (this.surfaceMinutesAt(a + e) - this.surfaceMinutesAt(a)) / e;
+        if (slope > 0) dp = dt / 60 / slope;
+      }
+      this.p += dp;
+      if (this.p >= 1) { this.p = 1; this.playing = false; this.realTime = false; if (this.onBeatEnd) this.onBeatEnd(this.beat); }
     }
     const o = this.out; o.fade = 0; o.labels = b.labels; o.cloudTime = time; o.waveDistance = 0;
     this['pose_' + b.id](this.p, dt, time);

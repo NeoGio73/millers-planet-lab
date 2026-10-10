@@ -7,6 +7,7 @@ import { createSurface, SURF } from './surface.js';
 import { Director, BEATS } from './director.js';
 import { createPanel } from './panel.js';
 import * as P from './physics.js';
+import { createTicker } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -253,7 +254,7 @@ async function boot() {
   const hint = $('hint');
   const engaged = () => { if (hint.style.opacity !== '0') hint.style.opacity = '0'; };
   viewport.addEventListener('pointerdown', (e) => {
-    if (e.target.closest('button')) return;
+    if (e.target.closest('button, .listen')) return;
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     viewport.setPointerCapture(e.pointerId); viewport.classList.add('dragging');
     if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); }
@@ -280,6 +281,50 @@ async function boot() {
   }, { passive: false });
   viewport.addEventListener('dblclick', (e) => { if (!e.target.closest('button')) { director.look.yaw = 0; director.look.pitch = 0; director.look.zoom = 1; } });
 
+  // ---- real time and the clock ticks (on the surface only) ----
+  const ticker = createTicker();
+  const listen = $('listen'), btnReal = $('btn-realtime'), btnTicks = $('btn-ticks'), listenNote = $('listen-note');
+  const DAY_SECONDS = (24 * 3600) / P.SURFACE_FACTOR;          // crew seconds per Earth day: 1.41 s
+  let ticksOn = false, lastDay = null, listenShown = false, listenState = '';
+  function listenNoteText() {
+    const s = DAY_SECONDS.toFixed(2);
+    if (director.realTime && ticksOn) return `Real time. Each tick is one day passing on Earth, ${s} s apart.`;
+    if (director.realTime) return `Real time: one second here is one second for the crew. Earth gains a day every ${s} s.`;
+    if (ticksOn) return 'The ticks play in real time.';
+    return 'Slow the surface to real time and hear Earth\u2019s days go by.';
+  }
+  function syncListen() {
+    btnReal.setAttribute('aria-pressed', String(director.realTime));
+    btnTicks.setAttribute('aria-pressed', String(ticksOn));
+    $('ico-sound-off').toggleAttribute('hidden', ticksOn); $('ico-sound-on').toggleAttribute('hidden', !ticksOn);
+    listenNote.textContent = listenNoteText();
+  }
+  function setRealTime(on) {
+    begin();
+    director.realTime = on;
+    if (on && director.p >= 1) director.seek(0);
+    if (on) director.playing = true;
+    sync(); syncListen();
+  }
+  btnReal.addEventListener('click', () => setRealTime(!director.realTime));
+  btnTicks.addEventListener('click', async () => {
+    ticksOn = !ticksOn;
+    if (ticksOn) { await ticker.enable(); if (!director.realTime) setRealTime(true); }
+    syncListen();
+  });
+  function listenFrame(out) {
+    const show = started && director.onSurface && out.fade < 0.5;
+    if (show !== listenShown) { listenShown = show; listen.hidden = !show; }
+    const state = `${director.realTime}|${ticksOn}`;
+    if (state !== listenState) { listenState = state; syncListen(); }
+    // one tick each time Earth's clock passes midnight, while the scene runs in real time
+    if (ticksOn && director.realTime && director.playing && out.phase === 'surface') {
+      const day = Math.floor(out.mission.earth / 1440);
+      if (lastDay !== null && day > lastDay) ticker.tick();
+      lastDay = day;
+    } else lastDay = null;
+  }
+
   // ---- render loop ----
   const sim = { freeze: false };
   // On a high-density screen with a modest graphics chip, step the resolution down until the animation runs smoothly.
@@ -295,9 +340,10 @@ async function boot() {
   let lastT = performance.now(), time = 0;
   function tick(now) {
     if (sim.freeze) { lastT = now; requestAnimationFrame(tick); return; }      // used by the automated screenshot tests
-    const raw = Math.max(0, (now - lastT) / 1000), dt = Math.min(0.05, raw); lastT = now; time += dt;
+    const raw = Math.max(0, (now - lastT) / 1000), dt = Math.min(0.1, raw); lastT = now; time += dt;
     adapt(raw);
     const out = director.frame(dt, time);
+    listenFrame(out);
     const world = out.world === 'space' ? space : surface;
     if (out.world === 'space') { camera.near = 0.3; camera.far = 30000; } else { camera.near = 1; camera.far = 320000; }
     camera.updateProjectionMatrix();
@@ -306,7 +352,7 @@ async function boot() {
     if (f !== lastFade) { lastFade = f; fade.style.opacity = String(f); }
     updateLabels(out);
     panel.update(out.mission);
-    const cap = director.caption;
+    const cap = director.realTime && director.onSurface ? listenNoteText() : director.caption;   // real time explains itself
     if (cap !== lastCaption) { lastCaption = cap; caption.textContent = cap; }
     const sv = Math.round(director.p * 1000);
     if (sv !== lastScrub) { lastScrub = sv; scrub.value = String(sv); }
@@ -320,7 +366,7 @@ async function boot() {
   director.frame(0, 0); renderer.render(space.scene, camera);
   renderer.compile(surface.scene, camera);
   $('loading').hidden = true;
-  Object.assign(sim, { director, params, panel, space, surface, camera, renderer, goto(beat, p = 0) { begin(); director.playing = false; director.goto(beat, p); sync(); } });
+  Object.assign(sim, { director, params, panel, space, surface, camera, renderer, ticker, goto(beat, p = 0) { begin(); director.playing = false; director.goto(beat, p); sync(); } });
   window.__sim = sim;
   requestAnimationFrame((t) => { lastT = t; tick(t); });
 }

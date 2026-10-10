@@ -13,6 +13,8 @@ An interactive 3D simulation for a calculus-based college physics course, built 
 | 5. Ascent | Back up to the Endurance | Escape velocity |
 | 6. Reunion | Docking: hours for the crew, 23 years for Romilly | Time dilation |
 
+**Real time and ticks.** While the Ranger is on the surface (Landing and The wave), two buttons appear in the 3D view. *Real time* slows the scene to the crew's true pace, one second per second. *Ticks* adds a clock tick each time a day passes on Earth: every 86,400 s ÷ 61,362 = 1.41 s. The tick is generated in the browser; no audio from the film is used. Sound stays off until a student presses *Ticks*.
+
 ## Putting it in D2L
 
 Students need a computer or tablet with a current browser (Chrome, Edge, Firefox or Safari). The first load is about 4 MB.
@@ -50,6 +52,7 @@ With the defaults (3 h 20 min on the surface), the trip takes 4 h 40 min for the
 2. Differentiate √(x(x−1)) + ln(√x + √(x−1)) and confirm that it is the integrand in the panel.
 3. Set the black hole to 10⁷ Suns. Why does a *lighter* black hole tear the planet apart?
 4. Show that √(1 − v<sub>esc</sub>²/c²) equals the time dilation factor.
+5. The ticks in the film's Miller's planet scene are often said to come every 1.25 s, one per day on Earth. With 1 hour = 7 years, how much Earth time does one 1.25 s tick really stand for? (The simulation ticks every 1.41 s.)
 
 ## Editing it
 
@@ -68,7 +71,8 @@ npx serve .        # or any static web server, then open http://localhost:3000
 | `src/space.js` | Stars, Gargantua, Miller's planet, the Endurance and the Ranger in orbit |
 | `src/surface.js` | The ocean, the wave, the cloud deck and the spray |
 | `src/panel.js` | The physics panel: clocks, tabs, sliders and the rate plot |
-| `src/main.js` | Loading, rendering, controls and the labels in the 3D view |
+| `src/main.js` | Loading, rendering, controls, real time and ticks, and the labels in the 3D view |
+| `src/audio.js` | The clock tick, made with the Web Audio API |
 
 To change the captions or beat lengths, edit `BEATS` in `src/director.js`. To change a default (surface time, parking orbit and so on), edit `DEFAULTS` in `src/physics.js`. Then run `npm run build`.
 
