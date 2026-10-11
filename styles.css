@@ -90,7 +90,7 @@ svg[hidden] { display: none; }
 .silence[hidden] { display: none; }
 .scrub input[type=range] { flex: 1 1 auto; min-width: 0; }
 .beats { display: flex; flex-wrap: wrap; gap: 8px; }
-.beats button { flex: 1 1 78px; min-height: 48px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 1px; padding: 5px 12px; border: none; border-top: 3px solid #3F4A54; background: var(--panel); color: var(--ink2); text-align: left; cursor: pointer; }
+.beats button { flex: 1 1 66px; min-height: 48px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 1px; padding: 5px 10px; white-space: nowrap; border: none; border-top: 3px solid #3F4A54; background: var(--panel); color: var(--ink2); text-align: left; cursor: pointer; }
 .beats button:hover { background: var(--raised); }
 .beats button .n { font-family: var(--mono); font-size: 12px; }
 .beats button .t { font-size: 15px; font-weight: 500; }
@@ -103,7 +103,8 @@ svg[hidden] { display: none; }
 input[type=range] { width: 100%; height: 44px; margin: 0; accent-color: var(--amber); background: transparent; cursor: pointer; }
 
 /* physics panel */
-.panel { flex: none; width: 420px; display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid var(--hair); overflow-y: auto; scrollbar-color: #3F4A54 transparent; }
+/* 75% wider than the original 420 px, but never more than half the window, so the 3D view keeps its share */
+.panel { flex: none; width: clamp(420px, 50vw, 735px); display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid var(--hair); overflow-y: auto; scrollbar-color: #3F4A54 transparent; }
 .clocks { display: flex; flex-direction: column; gap: 8px; padding: 14px 24px 12px; border-bottom: 1px solid var(--hair); position: sticky; top: 0; z-index: 2; background: var(--panel); }
 .clocks-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 12px; }
 .panel h2, .panel h3 { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink2); }
@@ -167,7 +168,7 @@ input[type=range] { width: 100%; height: 44px; margin: 0; accent-color: var(--am
 .control > p { margin-top: 4px; }
 
 .plot { position: relative; }
-.plot svg { display: block; width: 100%; height: auto; overflow: visible; cursor: crosshair; touch-action: pan-y; }
+.plot svg { display: block; width: 100%; max-width: 560px; height: auto; overflow: visible; cursor: crosshair; touch-action: pan-y; }
 .plot svg:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .plot text { font-family: var(--sans); }
 .plot-tip { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; gap: 1px; padding: 6px 9px; background: var(--ground); border: 1px solid var(--hair); border-radius: 4px; font-size: 13px; color: var(--ink2); white-space: nowrap; pointer-events: none; }
