@@ -2,6 +2,7 @@
   "name": "millers-planet-lab",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Interactive time dilation lab based on the Ranger's trip to Miller's planet in Interstellar.",
   "scripts": {
     "build": "esbuild src/main.js --bundle --minify --format=esm --target=es2020 --outfile=app.js"

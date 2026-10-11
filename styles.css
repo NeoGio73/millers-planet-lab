@@ -84,6 +84,10 @@ svg[hidden] { display: none; }
 .scrub { display: flex; align-items: center; gap: 12px; }
 .round { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; padding: 0; border: none; border-radius: 50%; background: var(--amber); color: var(--ground); cursor: pointer; }
 .round:hover { background: #EDB750; }
+.btn.sound { padding: 0 12px; }
+.btn.sound[aria-pressed=true] { border-color: var(--amber); background: rgba(227, 165, 53, 0.16); }
+.silence { left: 24px; bottom: 20px; padding: 7px 11px; background: rgba(8, 11, 14, 0.74); border-radius: 4px; font-size: 14px; color: var(--ink2); }
+.silence[hidden] { display: none; }
 .scrub input[type=range] { flex: 1 1 auto; min-width: 0; }
 .beats { display: flex; flex-wrap: wrap; gap: 8px; }
 .beats button { flex: 1 1 78px; min-height: 48px; display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 1px; padding: 5px 12px; border: none; border-top: 3px solid #3F4A54; background: var(--panel); color: var(--ink2); text-align: left; cursor: pointer; }
@@ -119,15 +123,23 @@ input[type=range] { width: 100%; height: 44px; margin: 0; accent-color: var(--am
 .mk-earth { border: 2px solid var(--ink); }
 .mk-hole { border: 2px solid var(--amber); background: #000; }
 
-.tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 16px 0; border-bottom: 1px solid var(--hair); flex: none; }
-.tabs button { min-height: 44px; padding: 0 10px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--ink2); font-size: 15px; font-weight: 600; cursor: pointer; }
+.tabs { display: flex; flex-wrap: wrap; gap: 0; padding: 6px 16px 0; border-bottom: 1px solid var(--hair); flex: none; position: sticky; top: var(--clocks-h, 0px); z-index: 2; background: var(--panel); }
+.tabs button { min-height: 44px; padding: 0 8px; background: transparent; border: none; border-bottom: 3px solid transparent; color: var(--ink2); font-size: 14px; font-weight: 600; white-space: nowrap; cursor: pointer; }
 .tabs button:hover { color: var(--ink); }
 .tabs button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--amber); }
 .tabpanel { display: flex; flex-direction: column; gap: 18px; padding: 18px 24px 24px; }
 .tabpanel[hidden] { display: none; }
 .tabpanel section { display: flex; flex-direction: column; gap: 6px; }
 
-.card { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: var(--raised); border-radius: 4px; }
+.card { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; background: var(--raised); border-radius: 4px; scroll-margin-top: 160px; transition: box-shadow 0.3s, background-color 0.3s; }
+/* the equation that explains what is on screen right now */
+.card.focus { background: #202830; box-shadow: inset 3px 0 0 var(--amber); }
+.card.focus .card-label { color: var(--ink); }
+.card.focus .card-label::after { content: "Now"; margin-left: 8px; padding: 1px 6px; border-radius: 3px; background: var(--amber); color: var(--ground); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; vertical-align: 1px; }
+/* the formula worked out with the simulation's current values */
+.live { font-family: var(--mono); font-size: 13px; line-height: 1.5; color: var(--ink); background: rgba(0, 0, 0, 0.22); border-radius: 3px; padding: 6px 9px; overflow-wrap: anywhere; }
+.live:empty { display: none; }
+.card.focus .live { background: rgba(227, 165, 53, 0.12); }
 .card-label { font-size: 14px; color: var(--ink2); }
 .formula { font-size: 19px; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
 .formula.small { font-size: 16px; }
@@ -177,6 +189,7 @@ dialog li strong { color: var(--ink); font-weight: 600; }
   .viewport { flex: none; height: 62vw; min-height: 260px; max-height: 70vh; touch-action: pan-y; }
   .panel { width: auto; border-left: none; border-top: 1px solid var(--hair); overflow: visible; }
   .clocks { position: static; }
+  .tabs { position: static; }
   .beat-title { left: 12px; top: 12px; }
   .beat-name { font-size: 22px; }
   .hint { right: 12px; top: 12px; }
@@ -192,9 +205,11 @@ dialog li strong { color: var(--ink); font-weight: 600; }
 }
 @media (max-width: 480px) {
   .tabpanel, .clocks { padding-left: 16px; padding-right: 16px; }
+  .btn.sound span { display: none; }
+  .silence { left: 12px; bottom: 12px; font-size: 13px; }
   .beats button { flex-basis: calc(33.333% - 6px); }
   #btn-next span.long { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tag, .hint, #loading-bar { transition: none; }
+  .tag, .hint, #loading-bar, .card { transition: none; }
 }

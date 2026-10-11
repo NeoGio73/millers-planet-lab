@@ -6,17 +6,17 @@ import { SURF } from './surface.js';
 import * as P from './physics.js';
 
 export const BEATS = [
-  { id: 'arrival', name: 'Arrival', dur: 14, tab: 'time', labels: ['gargantua', 'endurance', 'planet'],
+  { id: 'arrival', name: 'Arrival', dur: 14, focus: [[0, 'dilation']], labels: ['gargantua', 'endurance', 'planet'],
     captions: [[0, 'The Endurance parks far from Gargantua, where clocks run almost as fast as they do on Earth. Try the parking orbit slider.']] },
-  { id: 'descent', name: 'Descent', dur: 24, tab: 'time', labels: ['gargantua', 'endurance', 'ranger', 'planet'],
+  { id: 'descent', name: 'Descent', dur: 24, focus: [[0, 'dilation'], [0.22, 'integral']], labels: ['gargantua', 'endurance', 'ranger', 'planet'],
     captions: [[0, 'The Ranger lets go of the Endurance and turns toward the water world.'], [0.26, 'Falling inward. The Ranger’s clock slows as r shrinks, and Gargantua grows.'], [0.86, 'Into the atmosphere.']] },
-  { id: 'landing', name: 'Landing', dur: 16, tab: 'time', labels: ['ranger', 'wave'],
+  { id: 'landing', name: 'Landing', dur: 16, focus: [[0, 'surface'], [0.45, 'hover'], [0.92, 'surface']], labels: ['ranger', 'wave'],
     captions: [[0, 'Through the cloud deck and down toward a shallow ocean.'], [0.84, 'Touchdown. From here every hour costs seven years on Earth.']] },
-  { id: 'wave', name: 'The wave', dur: 36, tab: 'wave', labels: ['ranger', 'wave'],
+  { id: 'wave', name: 'The wave', dur: 36, focus: [[0, 'tidal'], [0.14, 'speed'], [0.3, 'sound'], [0.62, 'surface'], [0.82, 'redshift']], labels: ['ranger', 'wave'],
     captions: [[0, 'Those are not mountains. A wave tall enough to vanish into the cloud deck is closing in.'], [0.4, 'The wave lifts the Ranger up its face and into the clouds.'], [0.62, 'Engines flooded. Every minute spent waiting for them to drain costs 42.6 days on Earth.'], [0.88, 'Another wave is on the horizon.']] },
-  { id: 'ascent', name: 'Ascent', dur: 24, tab: 'escape', labels: ['ranger', 'wave'],
+  { id: 'ascent', name: 'Ascent', dur: 24, focus: [[0, 'rocket'], [0.14, 'loudness'], [0.32, 'escape'], [0.62, 'link']], labels: ['ranger', 'wave'],
     captions: [[0, 'Engines drained, the Ranger lifts off ahead of the next wave.'], [0.3, (params) => `Climbing away. Leaving the planet takes ${(P.vEscPlanet(params.planetRadius) / 1000).toFixed(1)} km/s, and Gargantua’s pull is far stronger still.`], [0.72, 'The Endurance is ahead. The Ranger’s clock is running fast again.']] },
-  { id: 'reunion', name: 'Reunion', dur: 16, tab: 'time', labels: ['gargantua', 'endurance', 'ranger'],
+  { id: 'reunion', name: 'Reunion', dur: 16, focus: [[0, 'integral']], labels: ['gargantua', 'endurance', 'ranger'],
     captions: [[0, 'Matching the Endurance’s spin to dock. A few hours have passed for the Ranger’s crew.'], [0.6, 'For Romilly, waiting aboard the Endurance, it has been more than twenty years.']] },
 ];
 
@@ -120,6 +120,12 @@ export class Director {
     const list = BEATS[this.beat].captions; let text = list[0][1];
     for (const [at, t] of list) if (this.p >= at) text = t;
     return typeof text === 'function' ? text(this.params) : text;      // some captions quote a live value
+  }
+  /** The panel card that explains what is on screen now. */
+  get focus() {
+    const list = BEATS[this.beat].focus; let key = list[0][1];
+    for (const [at, k] of list) if (this.p >= at) key = k;
+    return key;
   }
 
   // ---- per-frame ----

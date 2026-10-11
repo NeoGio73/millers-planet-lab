@@ -4,16 +4,22 @@ An interactive 3D simulation for a calculus-based college physics course, built 
 
 **Live page:** https://neogio73.github.io/millers-planet-lab/
 
-| Beat | What happens | Physics tab |
+| Beat | What happens | Equations in focus, in order |
 |---|---|---|
 | 1. Arrival | The Endurance parks far from Gargantua | Time dilation |
-| 2. Descent | The Ranger falls toward the planet; Gargantua grows | Time dilation, Earth time as an integral |
-| 3. Landing | Through the cloud deck to a shallow ocean | Time dilation |
-| 4. The wave | A 1.2 km wave arrives and lifts the Ranger | Tidal acceleration, wave speed |
-| 5. Ascent | Back up to the Endurance | Escape velocity |
-| 6. Reunion | Docking: hours for the crew, 23 years for Romilly | Time dilation |
+| 2. Descent | The Ranger falls toward the planet; Gargantua grows | Time dilation, then Earth time as an integral |
+| 3. Landing | Through the cloud deck to a shallow ocean | The surface factor 61,362, hovering fuel |
+| 4. The wave | A 1.2 km wave arrives and lifts the Ranger | Tidal stretch, wave speed √(gh), speed of sound, the surface factor, gravitational redshift |
+| 5. Ascent | Back up to the Endurance | Rocket equation, loudness and distance, escape velocity, the link to the clocks |
+| 6. Reunion | Docking: hours for the crew, 23 years for Romilly | The whole-trip integral |
 
-**Real time and ticks.** While the Ranger is on the surface (Landing and The wave), two buttons appear in the 3D view. *Real time* slows the scene to the crew's true pace, one second per second. *Ticks* adds a clock tick each time a day passes on Earth: every 86,400 s ÷ 61,362 = 1.41 s. The tick is generated in the browser; no audio from the film is used. Sound stays off until a student presses *Ticks*.
+**The equation in focus.** As the animation runs, the panel opens the tab and highlights the card (marked *Now*) that explains what is on screen. Under each formula, a live line works it out with the current values, for example √(1 − 1/40.6) = 0.9876 during the descent. If a student picks a tab or scrolls the panel, it leaves them alone until the next beat.
+
+**Four formula tabs.** *Time dilation* (with Earth time as an integral, the surface factor and gravitational redshift), *Escape velocity*, *The wave* (tides and wave speed) and *Flight & sound* (hovering fuel, the rocket equation, the speed of sound, and loudness against distance).
+
+**Sound.** The *Sound* button next to play turns on engines, wind, water and the wave's roar, all generated in the browser; no audio from the film is used. Sound is heard only in the planet's atmosphere: space is silent, because there is no air to carry it, and a note says so. Sound stays off until a student turns it on.
+
+**Real time and ticks.** While the Ranger is on the surface (Landing and The wave), two buttons appear in the 3D view. *Real time* slows the scene to the crew's true pace, one second per second. *Ticks* adds a clock tick each time a day passes on Earth: every 86,400 s ÷ 61,362 = 1.41 s.
 
 ## Putting it in D2L
 
@@ -43,6 +49,7 @@ dτ = dt √(1 − r<sub>s</sub>/r), with r<sub>s</sub> = 2GM/c²
 - Endurance: parked at 100 r<sub>s</sub> by default (adjustable), where clocks run at 0.995.
 - Descent and ascent: 40 minutes each on the Ranger's clock, with r falling linearly in τ. That turns the Earth-time integral into a closed form, shown in the panel. The trip is deliberately not to scale (it would need about 40c); the About box explains why that barely changes the answer.
 - Escape speed, orbit speed and the tidal stretch are Newtonian estimates. The wave moves at the long-wave speed √(gh).
+- Flight and sound: the film gives no engine or air data, so the panel assumes an exhaust speed of 4.4 km/s (adjustable, about the best hydrogen–oxygen rockets do) and Earth-like air at 15 °C (sound at 340 m/s).
 
 With the defaults (3 h 20 min on the surface), the trip takes 4 h 40 min for the crew, 23 y 2 mo 18 d for Romilly on the Endurance and 23 y 4 mo 0 d on Earth. The film's 23 years, 4 months, 8 days corresponds to 3 h 21 min on the surface.
 
@@ -53,6 +60,10 @@ With the defaults (3 h 20 min on the surface), the trip takes 4 h 40 min for the
 3. Set the black hole to 10⁷ Suns. Why does a *lighter* black hole tear the planet apart?
 4. Show that √(1 − v<sub>esc</sub>²/c²) equals the time dilation factor.
 5. The ticks in the film's Miller's planet scene are often said to come every 1.25 s, one per day on Earth. With 1 hour = 7 years, how much Earth time does one 1.25 s tick really stand for? (The simulation ticks every 1.41 s.)
+6. Hovering on a 1.3 g planet: solve dm/dt = −(g/v<sub>e</sub>)m and find the fraction of the Ranger's mass burned per minute.
+7. A 440 Hz tone is radioed from the surface. What frequency reaches the Endurance, and how long does a one-minute message take to play there?
+
+A full lab worksheet with an answer key, built on these questions, is kept by the course instructor.
 
 ## Editing it
 
@@ -70,11 +81,11 @@ npx serve .        # or any static web server, then open http://localhost:3000
 | `src/director.js` | The six beats: timing, captions, ship and camera paths |
 | `src/space.js` | Stars, Gargantua, Miller's planet, the Endurance and the Ranger in orbit |
 | `src/surface.js` | The ocean, the wave, the cloud deck and the spray |
-| `src/panel.js` | The physics panel: clocks, tabs, sliders and the rate plot |
-| `src/main.js` | Loading, rendering, controls, real time and ticks, and the labels in the 3D view |
-| `src/audio.js` | The clock tick, made with the Web Audio API |
+| `src/panel.js` | The physics panel: clocks, tabs, sliders, the rate plot, the equation in focus and its live numbers |
+| `src/main.js` | Loading, rendering, controls, sound levels, real time and ticks, and the labels in the 3D view |
+| `src/audio.js` | Engines, wind, water, the wave and the clock tick, made with the Web Audio API |
 
-To change the captions or beat lengths, edit `BEATS` in `src/director.js`. To change a default (surface time, parking orbit and so on), edit `DEFAULTS` in `src/physics.js`. Then run `npm run build`.
+To change the captions, beat lengths or which equation is in focus when, edit `BEATS` in `src/director.js` (`captions` and `focus`, each a list of [progress through the beat, value]). To change a default (surface time, parking orbit and so on), edit `DEFAULTS` in `src/physics.js`. Then run `npm run build`.
 
 ## Credits
 

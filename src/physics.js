@@ -39,6 +39,7 @@ export const DEFAULTS = {
   waveKm: 20,         // distance to the wave when it is sighted
   planetRadius: 1.3,  // in Earth radii: Earth's density at 1.3 g
   tidalMassExp: 8,    // log10 of the black hole mass in solar masses, for the tidal demo only
+  exhaustKms: 4.4,    // engine exhaust speed: about the best a hydrogen-oxygen rocket does (the film gives none)
 };
 
 /** Clock rate dτ/dt at distance x = r/r_s (1 = Earth's rate). */
@@ -190,4 +191,34 @@ export function fmtRate(v) {
   const mant = v / Math.pow(10, e);
   const sup = String(e).replace('-', '⁻').replace(/\d/g, (ch) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[+ch]);
   return `${mant.toFixed(2)} × 10${sup}`;
+}
+
+// ---- flight and sound ---------------------------------------------------------------------------------
+
+/** Fraction of its mass a craft burns per `seconds` of hovering: m(t) = m0 exp(-g t / v_e). */
+export function hoverBurn(g, exhaust, seconds = 60) {
+  return 1 - Math.exp((-g * seconds) / exhaust);
+}
+/** Speed of a low circular orbit around a planet of radius R (Earth radii) with gravity 1.3 g: sqrt(g R). */
+export function vOrbitPlanet(radiusEarths) {
+  return Math.sqrt(MILLER_G * radiusEarths * R_EARTH);
+}
+/** Mass ratio m0/mf the rocket equation demands for a change of speed dv: exp(dv / v_e). */
+export function massRatio(dv, exhaust) {
+  return Math.exp(dv / exhaust);
+}
+export const V_ORBIT_EARTH = 7.9e3;                                // m/s, low Earth orbit
+
+// Air on Miller's planet is not described in the film: Earth-like air at 15 °C is assumed.
+export const GAMMA_AIR = 1.4, M_AIR = 0.029, R_GAS = 8.314, T_AIR = 288;
+export const SOUND_SPEED = Math.sqrt((GAMMA_AIR * R_GAS * T_AIR) / M_AIR);   // about 340 m/s
+
+/** How many decibels quieter a source is at distance r than at r0 (inverse-square spreading). */
+export function dbDrop(r, r0 = 100) {
+  return 20 * Math.log10(r / r0);
+}
+
+/** Frequency received at rate `rateTo` from a source whose clock runs at `rateFrom` (gravitational redshift). */
+export function received(freq, rateFrom, rateTo) {
+  return (freq * rateFrom) / rateTo;
 }

@@ -58,6 +58,21 @@ function fmtBeta(b) {
   const nines = Math.min(10, Math.max(4, Math.ceil(-Math.log10(1 - b))));
   return `${b.toFixed(nines)} c`;
 }
+/** A number with thousands separators. */
+const num = (v, d = 0) => P.fmtNumber(v, d);
+/** Scientific notation as markup: 2.66 × 10<sup>−10</sup>. */
+function sci(v, d = 2) {
+  const e = Math.floor(Math.log10(Math.abs(v)));
+  return `${(v / Math.pow(10, e)).toFixed(d)} × 10<sup>${e < 0 ? '−' + -e : e}</sup>`;
+}
+/** A frequency in hertz, with as many digits as it needs. */
+function fmtHz(f) {
+  if (f >= 100) return `${f.toFixed(1)} Hz`;
+  if (f >= 1) return `${f.toFixed(2)} Hz`;
+  return `${f.toPrecision(3)} Hz`;
+}
+const RS = 'r<sub>s</sub>';
+
 /** 10^e solar masses as markup: 3.2 × 10<sup>7</sup> Suns. */
 function fmtSuns(exp) {
   const e = Math.floor(exp + 1e-9), mant = Math.pow(10, exp - e);
@@ -169,8 +184,10 @@ export function createPanel({ params, onChange }) {
   }
 
   // tabs
-  const TABS = ['time', 'escape', 'wave'];
+  const TABS = ['time', 'escape', 'wave', 'flight'];
   let currentTab = 'time';
+  const panelEl = document.querySelector('.panel'), clocksEl = panelEl.querySelector('.clocks'), tabsEl = panelEl.querySelector('.tabs');
+  new ResizeObserver(() => panelEl.style.setProperty('--clocks-h', `${clocksEl.offsetHeight}px`)).observe(clocksEl);
   function showTab(name, focus = false) {
     currentTab = name;
     for (const t of TABS) {
@@ -182,7 +199,7 @@ export function createPanel({ params, onChange }) {
   }
   TABS.forEach((t, i) => {
     const tab = $('tab-' + t);
-    tab.addEventListener('click', () => showTab(t));
+    tab.addEventListener('click', () => { userTook = true; showTab(t); });
     tab.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowRight') { showTab(TABS[(i + 1) % TABS.length], true); e.preventDefault(); }
       if (e.key === 'ArrowLeft') { showTab(TABS[(i + TABS.length - 1) % TABS.length], true); e.preventDefault(); }
@@ -191,6 +208,30 @@ export function createPanel({ params, onChange }) {
   showTab('time');
 
   const updatePlot = buildPlot($('plot'));
+
+  // ---- the equation in focus ----
+  const CARD_TAB = { dilation: 'time', integral: 'time', surface: 'time', redshift: 'time', escape: 'escape', link: 'escape', tidal: 'wave', speed: 'wave', hover: 'flight', rocket: 'flight', sound: 'flight', loudness: 'flight' };
+  const reduceMotion = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  let focusKey = null, userTook = false;
+  // the student takes over when they pick a tab or scroll the panel themselves; a new beat hands control back
+  for (const ev of ['wheel', 'touchmove']) panelEl.addEventListener(ev, () => { userTook = true; }, { passive: true });
+  panelEl.addEventListener('keydown', (e) => { if (['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End', ' '].includes(e.key) && !e.target.closest('input')) userTook = true; });
+  function setFocus(key) {
+    if (key === focusKey) return;
+    const prev = focusKey && panelEl.querySelector(`[data-focus="${focusKey}"]`);
+    if (prev) prev.classList.remove('focus');
+    focusKey = key;
+    const card = key && panelEl.querySelector(`[data-focus="${key}"]`);
+    if (!card) return;
+    card.classList.add('focus');
+    if (userTook) return;
+    showTab(CARD_TAB[key]);
+    // scroll only when the panel scrolls on its own, beside the scene; under the scene (phones) the page would jump
+    if (getComputedStyle(panelEl).overflowY === 'visible' || panelEl.scrollHeight <= panelEl.clientHeight + 4) return;
+    const top = panelEl.scrollTop + card.getBoundingClientRect().top - panelEl.getBoundingClientRect().top - clocksEl.offsetHeight - tabsEl.offsetHeight - 12;
+    panelEl.scrollTo({ top: Math.max(0, top), behavior: reduceMotion.matches ? 'auto' : 'smooth' });
+  }
+  function beatChanged() { userTook = false; focusKey && setFocus(null); focusKey = null; }
 
   // ---- values that change only when a slider moves ----
   function refresh() {
@@ -232,13 +273,26 @@ export function createPanel({ params, onChange }) {
     const eta = P.waveEtaSeconds(p.waveKm);
     setText('wave-eta', fmtSeconds(eta));
     setText('wave-earth', `${((eta / 60) * P.SURFACE_FACTOR / 1440).toFixed(0)} days`);
+    setHTML('lv-tidal', `At r = ${RS} with M = ${fmtSuns(p.tidalMassExp).replace(' Suns', '')} M<sub>☉</sub> and R = ${R.toFixed(1)} R<sub>E</sub>: Δg = c<sup>6</sup>R ÷ (4G<sup>2</sup>M<sup>2</sup>) = ${dg >= 100 ? num(dg) : dg.toFixed(2)} m/s²`);
+
+    // flight
+    const ve = p.exhaustKms * 1000, g = P.MILLER_G;
+    setText('out-ve', `${p.exhaustKms.toFixed(1)} km/s`);
+    const burn = P.hoverBurn(g, ve), burnE = P.hoverBurn(P.G_EARTH, ve);
+    setHTML('lv-hover', `e<sup>−${g.toFixed(2)} × 60 ÷ ${num(ve)}</sup> = ${(1 - burn).toFixed(3)}: ${(100 * burn).toFixed(0)}% of the Ranger's mass burns per minute of hovering. On Earth: ${(100 * burnE).toFixed(1)}%.`);
+    const vo = P.vOrbitPlanet(R), vx = P.vEscPlanet(R), r1 = P.massRatio(vo, ve), r2 = P.massRatio(vx, ve), r3 = P.massRatio(P.V_ORBIT_EARTH, ve);
+    setText('rk-orbit', r1 < 100 ? r1.toFixed(1) : num(r1));
+    setText('rk-escape', r2 < 100 ? r2.toFixed(1) : num(r2));
+    setText('rk-orbit-label', `launch mass ÷ final mass, to orbit the planet (${(vo / 1000).toFixed(1)} km/s)`);
+    setText('rk-escape-label', `to escape the planet (${(vx / 1000).toFixed(1)} km/s)`);
+    setHTML('lv-rocket', `Orbit: e<sup>${(vo / 1000).toFixed(1)} ÷ ${p.exhaustKms.toFixed(1)}</sup> = ${r1.toFixed(1)}, so ${(100 * (1 - 1 / r1)).toFixed(0)}% of the launch mass is fuel. Earth orbit needs e<sup>7.9 ÷ ${p.exhaustKms.toFixed(1)}</sup> = ${r3.toFixed(1)}.`);
   }
 
   const bind = (id, key) => {
     const el = $(id); el.value = params[key];
     el.addEventListener('input', () => { params[key] = +el.value; refresh(); if (onChange) onChange(key); });
   };
-  bind('sl-xE', 'xE'); bind('sl-surface', 'surfaceMin'); bind('sl-radius', 'planetRadius'); bind('sl-mass', 'tidalMassExp'); bind('sl-wave', 'waveKm');
+  bind('sl-xE', 'xE'); bind('sl-surface', 'surfaceMin'); bind('sl-radius', 'planetRadius'); bind('sl-mass', 'tidalMassExp'); bind('sl-wave', 'waveKm'); bind('sl-ve', 'exhaustKms');
   refresh();
 
   // about and full screen
@@ -252,7 +306,8 @@ export function createPanel({ params, onChange }) {
   document.addEventListener('fullscreenchange', () => { full.querySelector('span').textContent = document.fullscreenElement ? 'Exit full screen' : 'Full screen'; });
 
   // ---- values that follow the animation ----
-  function update(m) {
+  /** extra: { world: 'space' | 'surface', waveDistance (m, + while it approaches), rangerDist (m from the landing site) } */
+  function update(m, extra = { world: 'space', waveDistance: 0, rangerDist: 0 }) {
     setText('ck-ranger', P.fmtHMS(m.tau));
     setText('ck-endurance', P.fmtDuration(m.endurance));
     setText('ck-earth', P.fmtDuration(m.earth));
@@ -282,7 +337,52 @@ export function createPanel({ params, onChange }) {
       note = `Whole flight: the Ranger’s clock reads ${P.fmtHMS(m.tau)} and Earth’s ${P.fmtDuration(m.earth)}. Almost all of it built up while the Ranger sat on the surface.`;
     }
     setHTML('integral-note', note);
+    live(m, extra, docked);
   }
 
-  return { update, refresh, showTab, get tab() { return currentTab; } };
+  function live(m, extra, docked) {
+    const p = params, x = docked ? p.xE : m.x, dEarth = P.earthMinutesDescent(p, 1), F = P.F, Fe = F(p.xE);
+    const shortX = (v) => (v >= 99.95 ? fmtX(v) : v.toFixed(1));
+    // time dilation
+    if (m.onSurface) setHTML('lv-dilation', `On the planet, r − ${RS} = ${sci(P.X_PLANET_EXCESS)} ${RS}: dτ/dt = 1/61,362 = ${rateHTML(m.rangerRate)}`);
+    else setHTML('lv-dilation', `${docked ? 'Docked' : 'Ranger'} at r = ${fmtX(x)} ${RS}: √(1 − 1/${fmtX(x)}) = ${rateHTML(m.rangerRate)}`);
+    const k = `(${p.descentMin} min ÷ ${num(p.xE - 1)})`;
+    let integ = '';
+    if (m.phase === 'descent') integ = `${k} × [F(${fmtX(p.xE)}) − F(${shortX(x)})] = ${k} × (${Fe.toFixed(2)} − ${F(x).toFixed(2)}) = ${P.fmtDuration(m.earth)}`;
+    else if (m.phase === 'surface') integ = `Descent: ${k} × [F(${fmtX(p.xE)}) − F(1)] = ${P.fmtDuration(dEarth)}`;
+    else if (m.phase === 'ascent') integ = `Ascent so far: ${k} × [F(${shortX(x)}) − F(1)] = ${P.fmtDuration(P.earthMinutesAscent(p, m.s))}`;
+    else if (m.phase === 'done') integ = `${P.fmtDuration(dEarth)} + 61,362 × ${fmtMinutes(p.surfaceMin)} + ${P.fmtDuration(dEarth)} = ${P.fmtDuration(m.earth)}`;
+    setHTML('lv-integral', integ);
+    if (m.onSurface) {
+      const surf = m.tau - p.descentMin;
+      setHTML('lv-surface', `${P.fmtDuration(surf)} on the surface × 61,362 = ${P.fmtDuration(surf * P.SURFACE_FACTOR)} on Earth`);
+    } else setHTML('lv-surface', `Once the Ranger lands: 1 min there × 61,362 = 42.6 days on Earth`);
+    // a 440 Hz tone from the Ranger, heard on the Endurance
+    const f = P.received(440, m.rangerRate, m.enduranceRate);
+    if (docked) setHTML('lv-redshift', `A 440 Hz tone from the docked Ranger arrives at 440 Hz: same place, same clock rate.`);
+    else if (f >= 1) setHTML('lv-redshift', `A 440 Hz tone sent from the Ranger now arrives on the Endurance at ${fmtHz(f)}.`);
+    else setHTML('lv-redshift', `A 440 Hz tone sent from the surface arrives on the Endurance at ${fmtHz(f)}: one cycle every ${P.fmtDuration(1 / f / 60)}. A one-minute message would take ${P.fmtDuration(m.enduranceRate / m.rangerRate)} to play.`);
+    // escape speed and the link to the clocks
+    const R = p.planetRadius;
+    if (extra.world === 'surface') setHTML('lv-escape', `From Miller's planet: √(2gR) = √(2 × ${P.MILLER_G.toFixed(2)} × ${sci(R * P.R_EARTH)}) m/s = ${(P.vEscPlanet(R) / 1000).toFixed(1)} km/s`);
+    else setHTML('lv-escape', `From Gargantua at r = ${fmtX(x)} ${RS}: c √(${RS}/r) = c √(1/${fmtX(x)}) = ${fmtBeta(P.vEscGargantua(x))}`);
+    if (m.onSurface) setHTML('lv-link', `On the planet, v<sub>esc</sub> = (1 − ${sci(1 - Math.sqrt(1 - 1 / P.SURFACE_FACTOR ** 2), 1)}) c, so the factor is ${rateHTML(m.rangerRate)}`);
+    else { const b = P.vEscGargantua(x); setHTML('lv-link', `√(1 − ${b.toFixed(3)}²) = ${P.rate(x).toFixed(4)} = √(1 − 1/${fmtX(x)})`); }
+    // the wave and its sound
+    const d = extra.world === 'surface' ? extra.waveDistance : 0, vw = P.WAVE_SPEED, vs = P.SOUND_SPEED;
+    let speed = `v = √(${P.MILLER_G.toFixed(2)} × 1,200) = ${vw.toFixed(0)} m/s = ${(vw * 3.6).toFixed(0)} km/h.`;
+    if (d > 300) speed += ` The crest is ${(d / 1000).toFixed(1)} km away: it arrives in ${fmtSeconds(d / vw)}, while ${P.fmtDuration((d / vw / 60) * P.SURFACE_FACTOR)} pass on Earth.`;
+    else if (d < -300 && d > -40000) speed += ' The crest has passed.';
+    setHTML('lv-speed', speed);
+    let sound = `√(1.4 × 8.314 × 288 ÷ 0.029) = ${vs.toFixed(0)} m/s.`;
+    if (extra.world === 'space') sound += ' Out here there is no air, so nothing to hear.';
+    else if (d > 300) sound += ` The crest is ${(d / 1000).toFixed(1)} km away: its roar reaches the Ranger in ${fmtSeconds(d / vs)}, the wave itself in ${fmtSeconds(d / vw)}.`;
+    else sound += ` A sound made 20 km away arrives ${fmtSeconds(20000 / vs)} later.`;
+    setHTML('lv-sound', sound);
+    if (extra.world !== 'surface') setHTML('lv-loud', 'Out of the atmosphere: no air, nothing to hear.');
+    else if (extra.rangerDist < 100) setHTML('lv-loud', 'The Ranger is at the landing site.');
+    else setHTML('lv-loud', `Heard from the landing site, the Ranger ${extra.rangerDist < 1000 ? Math.round(extra.rangerDist / 10) * 10 + ' m' : (extra.rangerDist / 1000).toFixed(1) + ' km'} away is 20 log<sub>10</sub>(r/100 m) = ${P.dbDrop(extra.rangerDist).toFixed(1)} dB quieter than at 100 m.`);
+  }
+
+  return { update, refresh, showTab, setFocus, beatChanged, get tab() { return currentTab; }, get focus() { return focusKey; } };
 }

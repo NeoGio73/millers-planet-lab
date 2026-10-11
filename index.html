@@ -54,6 +54,7 @@
           </div>
           <p id="listen-note" aria-live="polite"></p>
         </div>
+        <div class="hud silence" id="silence" hidden>No sound in space: there is no air to carry it.</div>
         <div id="start" class="overlay">
           <div class="overlay-card">
             <div class="eyebrow accent">Mission briefing</div>
@@ -79,6 +80,11 @@
           </button>
           <label class="sr-only" for="scrub">Position within this beat</label>
           <input type="range" id="scrub" min="0" max="1000" step="1" value="0">
+          <button type="button" class="btn sound" id="btn-sound" aria-pressed="false" title="Sound effects, off until you turn them on">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16" id="ico-snd-off"><path d="M2.5 6h2.5l3.5-3v10l-3.5-3H2.5z" fill="currentColor"/><path d="M11 6l3.5 4M14.5 6L11 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 16 16" id="ico-snd-on" hidden><path d="M2.5 6h2.5l3.5-3v10l-3.5-3H2.5z" fill="currentColor"/><path d="M11 5.5a3.5 3.5 0 0 1 0 5M12.8 3.6a6 6 0 0 1 0 8.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <span>Sound</span>
+          </button>
           <button type="button" class="btn" id="btn-next">Next beat</button>
         </div>
         <nav class="beats" id="beats" aria-label="Animation beats"></nav>
@@ -115,13 +121,15 @@
         <button type="button" role="tab" id="tab-time" aria-controls="panel-time" aria-selected="true">Time dilation</button>
         <button type="button" role="tab" id="tab-escape" aria-controls="panel-escape" aria-selected="false">Escape velocity</button>
         <button type="button" role="tab" id="tab-wave" aria-controls="panel-wave" aria-selected="false">The wave</button>
+        <button type="button" role="tab" id="tab-flight" aria-controls="panel-flight" aria-selected="false">Flight &amp; sound</button>
       </div>
 
       <!-- TIME DILATION -->
       <div class="tabpanel" role="tabpanel" id="panel-time" aria-labelledby="tab-time">
-        <div class="card">
+        <div class="card" data-focus="dilation">
           <div class="card-label">Gravitational time dilation</div>
           <div class="formula" data-tex="d\tau = dt\,\sqrt{1-\dfrac{r_s}{r}}\qquad\quad r_s=\dfrac{2GM}{c^2}"></div>
+          <p class="live" id="lv-dilation"></p>
           <p class="note"><span data-tex="d\tau"></span> is a tick of a clock sitting at distance <span data-tex="r"></span> from Gargantua. <span data-tex="dt"></span> is the same tick on a far-away clock such as Earth's. Gargantua holds 100 million Suns, so <span data-tex="r_s"></span> is 2.95 × 10<sup>8</sup> km, about 2 AU.</p>
         </div>
 
@@ -150,12 +158,27 @@
           <p class="muted small">Distance from Gargantua in Schwarzschild radii, log scale</p>
         </section>
 
-        <div class="card">
+        <div class="card" data-focus="integral">
           <div class="card-label">Earth time is an integral over the Ranger's flight</div>
           <div class="formula" data-tex="\Delta t_{\text{Earth}}=\int_0^{\tau}\frac{d\tau'}{\sqrt{1-r_s/r(\tau')}}"></div>
+          <p class="live" id="lv-integral"></p>
           <p class="note" id="integral-note"></p>
           <div class="formula small" data-tex="\begin{aligned}\int\!\sqrt{\frac{x}{x-1}}\,dx&=\sqrt{x(x-1)}\\&\quad+\ln\!\left(\sqrt{x}+\sqrt{x-1}\right)\end{aligned}"></div>
           <p class="note">Here <span data-tex="x=r/r_s"></span>. The simulation lets <span data-tex="r"></span> fall steadily on the Ranger's own clock, which turns the flight integral into this one. Differentiate the right side to check it.</p>
+        </div>
+
+        <div class="card" data-focus="surface">
+          <div class="card-label">On the surface the integral becomes a product</div>
+          <div class="formula" data-tex="\Delta t_{\text{Earth}}=\frac{\Delta\tau}{\sqrt{1-r_s/r}}=61{,}362\;\Delta\tau"></div>
+          <p class="live" id="lv-surface"></p>
+          <p class="note">With <span data-tex="r"></span> fixed, the integrand is a constant. One minute on the planet is 42.6 days on Earth, and a day passes on Earth every 1.41 s. On the surface, try <strong>Real time</strong> and <strong>Ticks</strong> to hear it.</p>
+        </div>
+
+        <div class="card" data-focus="redshift">
+          <div class="card-label">Frequencies are clocks too: gravitational redshift</div>
+          <div class="formula" data-tex="f_{\text{received}}=f_{\text{sent}}\,\frac{\sqrt{1-r_s/r_{\text{sent}}}}{\sqrt{1-r_s/r_{\text{received}}}}"></div>
+          <p class="live" id="lv-redshift"></p>
+          <p class="note">A frequency counts cycles per second, so it slows exactly as a clock does. A radio call from the surface reaches the Endurance stretched by the same factor as the crew's clock.</p>
         </div>
 
         <section class="control">
@@ -173,10 +196,11 @@
 
       <!-- ESCAPE VELOCITY -->
       <div class="tabpanel" role="tabpanel" id="panel-escape" aria-labelledby="tab-escape" hidden>
-        <div class="card">
+        <div class="card" data-focus="escape">
           <div class="card-label">Escape velocity</div>
           <div class="formula" data-tex="v_{\text{esc}}=\sqrt{\dfrac{2GM}{r}}"></div>
           <div class="formula small" data-tex="\tfrac12\,m\,v_{\text{esc}}^{2}=\int_{r}^{\infty}\frac{GMm}{r'^{2}}\,dr'=\frac{GMm}{r}"></div>
+          <p class="live" id="lv-escape"></p>
           <p class="note">The kinetic energy at launch has to pay for all the work gravity does on the way out. Run the film backwards and it is the speed gained falling in from far away.</p>
         </div>
 
@@ -203,19 +227,21 @@
           <p class="note" id="orbit-note"></p>
         </div>
 
-        <div class="card">
+        <div class="card" data-focus="link">
           <div class="card-label">The link to the clocks</div>
           <div class="formula" data-tex="\sqrt{1-\dfrac{v_{\text{esc}}^{2}}{c^{2}}}=\sqrt{1-\dfrac{r_s}{r}}"></div>
+          <p class="live" id="lv-link"></p>
           <p class="note">Put the escape speed into the special relativity factor and the gravitational time dilation factor comes out. Where the escape speed reaches <span data-tex="c"></span>, <span data-tex="r=r_s"></span>.</p>
         </div>
       </div>
 
       <!-- THE WAVE -->
       <div class="tabpanel" role="tabpanel" id="panel-wave" aria-labelledby="tab-wave" hidden>
-        <div class="card">
+        <div class="card" data-focus="tidal">
           <div class="card-label">Why the ocean piles up: tidal acceleration</div>
           <div class="formula" data-tex="g(r)=\frac{GM}{r^{2}}\quad\Rightarrow\quad\frac{dg}{dr}=-\frac{2GM}{r^{3}}"></div>
           <div class="formula small" data-tex="\Delta g\approx\left|\frac{dg}{dr}\right|R=\frac{2GM}{r^{3}}\,R"></div>
+          <p class="live" id="lv-tidal"></p>
           <p class="note">Gargantua pulls harder on the near side of the planet than on its centre, a planet radius <span data-tex="R"></span> closer. That difference stretches the planet and heaps up its ocean; as the planet rocks, the water sloshes into waves about 1.2 km tall.</p>
         </div>
 
@@ -229,9 +255,10 @@
           <p class="muted small" id="tide-note"></p>
         </section>
 
-        <div class="card">
+        <div class="card" data-focus="speed">
           <div class="card-label">How fast it closes in: speed of a long wave</div>
           <div class="formula" data-tex="v=\sqrt{g\,h}"></div>
+          <p class="live" id="lv-speed"></p>
           <p class="note">Gravity here is 1.3 times Earth's, 12.7 m/s². With about 1.2 km of water under the crest the wave moves at 124 m/s, or 445 km/h.</p>
         </div>
 
@@ -243,6 +270,51 @@
             <div class="tile"><span class="big" id="wave-earth">115 days</span><span class="muted small">pass on Earth meanwhile</span></div>
           </div>
         </section>
+      </div>
+
+      <!-- FLIGHT AND SOUND -->
+      <div class="tabpanel" role="tabpanel" id="panel-flight" aria-labelledby="tab-flight" hidden>
+        <div class="card" data-focus="hover">
+          <div class="card-label">Hovering burns fuel exponentially</div>
+          <div class="formula" data-tex="\dot m\,v_e=m\,g\quad\Rightarrow\quad\frac{dm}{dt}=-\frac{g}{v_e}\,m"></div>
+          <div class="formula small" data-tex="m(t)=m_0\,e^{-g t/v_e}"></div>
+          <p class="live" id="lv-hover"></p>
+          <p class="note">To hover, the engines must throw exhaust down hard enough to hold up the ship's weight. A heavier ship burns faster, so its mass decays exponentially, and 1.3 g makes it worse than on Earth.</p>
+        </div>
+
+        <section class="control">
+          <div class="control-head"><label for="sl-ve">Engine exhaust speed</label><output id="out-ve" for="sl-ve">4.4 km/s</output></div>
+          <input type="range" id="sl-ve" min="2.5" max="4.5" step="0.1" value="4.4">
+          <p class="muted small">4.4 km/s is about the best a hydrogen–oxygen rocket does. The film doesn't say what drives the Ranger.</p>
+        </section>
+
+        <div class="card" data-focus="rocket">
+          <div class="card-label">Climbing back to orbit: the rocket equation</div>
+          <div class="formula" data-tex="\Delta v=v_e\ln\frac{m_0}{m_f}"></div>
+          <div class="formula small" data-tex="\text{from}\quad m\,dv=-v_e\,dm"></div>
+          <div class="tiles">
+            <div class="tile"><span class="big" id="rk-orbit">10.3</span><span class="muted small" id="rk-orbit-label">launch mass ÷ final mass, to orbit the planet</span></div>
+            <div class="tile"><span class="big" id="rk-escape">27</span><span class="muted small" id="rk-escape-label">to escape the planet</span></div>
+          </div>
+          <p class="live" id="lv-rocket"></p>
+          <p class="note">Each bit of exhaust thrown backward speeds up the rest of the ship. Real rockets drop empty stages to beat the logarithm; the Ranger does it in one.</p>
+        </div>
+
+        <div class="card" data-focus="sound">
+          <div class="card-label">Sound needs air</div>
+          <div class="formula" data-tex="v_{\text{sound}}=\sqrt{\frac{\gamma R T}{M}}"></div>
+          <p class="live" id="lv-sound"></p>
+          <p class="note">Sound is a pressure wave, so it needs a medium. In space there is nothing to carry it, and the simulation goes silent above the clouds, as the film does. The film never describes this planet's air, so Earth's is assumed: <span data-tex="\gamma=1.4"></span>, <span data-tex="M=0.029"></span> kg/mol, <span data-tex="T=288"></span> K.</p>
+        </div>
+
+        <div class="card" data-focus="loudness">
+          <div class="card-label">Loudness and distance</div>
+          <div class="formula" data-tex="I=\frac{P}{4\pi r^{2}},\qquad\beta=10\log_{10}\frac{I}{I_0}"></div>
+          <div class="formula small" data-tex="\frac{d\beta}{dr}=-\frac{20}{r\ln 10}"></div>
+          <div class="formula small" data-tex="\beta_2-\beta_1=-20\log_{10}\frac{r_2}{r_1}"></div>
+          <p class="live" id="lv-loud"></p>
+          <p class="note">The engine's power spreads over a sphere, so its intensity falls as <span data-tex="1/r^2"></span>: each doubling of distance costs 6.0 dB. With Sound on, the Ranger's engine in the simulation follows this rule.</p>
+        </div>
       </div>
 
     </aside>

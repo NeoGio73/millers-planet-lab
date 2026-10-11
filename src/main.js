@@ -7,7 +7,7 @@ import { createSurface, SURF } from './surface.js';
 import { Director, BEATS } from './director.js';
 import { createPanel } from './panel.js';
 import * as P from './physics.js';
-import { createTicker } from './audio.js';
+import { createSound } from './audio.js';
 
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -235,7 +235,7 @@ async function boot() {
     else director.playing = true;
     sync();
   }
-  director.onBeatChange = (i) => { panel.showTab(BEATS[i].tab); };
+  director.onBeatChange = () => panel.beatChanged();
   director.onBeatEnd = () => sync();
   btnPlay.addEventListener('click', togglePlay);
   btnNext.addEventListener('click', next);
@@ -281,8 +281,47 @@ async function boot() {
   }, { passive: false });
   viewport.addEventListener('dblclick', (e) => { if (!e.target.closest('button')) { director.look.yaw = 0; director.look.pitch = 0; director.look.zoom = 1; } });
 
+  // ---- sound: off until the viewer turns it on; heard only in the atmosphere ----
+  const sound = createSound();
+  const btnSound = $('btn-sound'), silence = $('silence');
+  let silenceUntil = 0, silencePending = false, wasSpace = false, silenceShown = false;
+  function syncSound() {
+    btnSound.setAttribute('aria-pressed', String(sound.on));
+    btnSound.setAttribute('aria-label', sound.on ? 'Sound on' : 'Sound off');
+    $('ico-snd-off').toggleAttribute('hidden', sound.on); $('ico-snd-on').toggleAttribute('hidden', !sound.on);
+  }
+  async function setSound(on) {
+    sound.on = on;
+    if (on) await sound.enable();
+    else ticksOn = false;
+    if (on && lastWorld === 'space') silencePending = true;
+    syncSound(); syncListen();
+  }
+  btnSound.addEventListener('click', () => setSound(!sound.on));
+  let lastWorld = 'space';
+  function soundFrame(out, now) {
+    const rig = surface.ranger.rig, surf = out.world === 'surface';
+    const camY = camera.position.y;
+    sound.update({
+      air: surf, playing: director.playing,
+      engine: surf ? surface.ranger.plumes.userData.power || 0 : 0,
+      engineDistance: surf ? camera.position.distanceTo(rig.position) : 1e9,
+      wind: surf ? 0.45 + 0.55 * out.fade : 0,
+      water: surf ? clamp(1 - camY / 250, 0, 1) : 0,
+      waveDistance: surf ? out.waveDistance : 0,
+    });
+    // a short note when the scene leaves the air, so silence is not mistaken for a fault
+    const isSpace = out.world === 'space';
+    if (isSpace && !wasSpace && sound.on) silencePending = true;
+    if (!isSpace) silencePending = false;
+    if (silencePending && started && out.fade < 0.5) { silencePending = false; silenceUntil = now + 6000; }    // shown once the view clears
+    wasSpace = isSpace; lastWorld = out.world;
+    const show = sound.on && started && isSpace && now < silenceUntil && out.fade < 0.5;
+    if (show !== silenceShown) { silenceShown = show; silence.hidden = !show; }
+  }
+
   // ---- real time and the clock ticks (on the surface only) ----
-  const ticker = createTicker();
+  const ticker = sound;
   const listen = $('listen'), btnReal = $('btn-realtime'), btnTicks = $('btn-ticks'), listenNote = $('listen-note');
   const DAY_SECONDS = (24 * 3600) / P.SURFACE_FACTOR;          // crew seconds per Earth day: 1.41 s
   let ticksOn = false, lastDay = null, listenShown = false, listenState = '';
@@ -309,7 +348,7 @@ async function boot() {
   btnReal.addEventListener('click', () => setRealTime(!director.realTime));
   btnTicks.addEventListener('click', async () => {
     ticksOn = !ticksOn;
-    if (ticksOn) { await ticker.enable(); if (!director.realTime) setRealTime(true); }
+    if (ticksOn) { if (!sound.on) await setSound(true); ticksOn = true; if (!director.realTime) setRealTime(true); }
     syncListen();
   });
   function listenFrame(out) {
@@ -344,6 +383,7 @@ async function boot() {
     adapt(raw);
     const out = director.frame(dt, time);
     listenFrame(out);
+    soundFrame(out, now);
     const world = out.world === 'space' ? space : surface;
     if (out.world === 'space') { camera.near = 0.3; camera.far = 30000; } else { camera.near = 1; camera.far = 320000; }
     camera.updateProjectionMatrix();
@@ -351,7 +391,8 @@ async function boot() {
     const f = Math.round(out.fade * 100) / 100;
     if (f !== lastFade) { lastFade = f; fade.style.opacity = String(f); }
     updateLabels(out);
-    panel.update(out.mission);
+    panel.setFocus(director.focus);
+    panel.update(out.mission, { world: out.world, waveDistance: out.waveDistance, rangerDist: Math.hypot(surface.ranger.rig.position.x, surface.ranger.rig.position.z, surface.ranger.rig.position.y) });
     const cap = director.realTime && director.onSurface ? listenNoteText() : director.caption;   // real time explains itself
     if (cap !== lastCaption) { lastCaption = cap; caption.textContent = cap; }
     const sv = Math.round(director.p * 1000);
@@ -366,7 +407,7 @@ async function boot() {
   director.frame(0, 0); renderer.render(space.scene, camera);
   renderer.compile(surface.scene, camera);
   $('loading').hidden = true;
-  Object.assign(sim, { director, params, panel, space, surface, camera, renderer, ticker, goto(beat, p = 0) { begin(); director.playing = false; director.goto(beat, p); sync(); } });
+  Object.assign(sim, { director, params, panel, space, surface, camera, renderer, ticker, sound, goto(beat, p = 0) { begin(); director.playing = false; director.goto(beat, p); sync(); } });
   window.__sim = sim;
   requestAnimationFrame((t) => { lastT = t; tick(t); });
 }

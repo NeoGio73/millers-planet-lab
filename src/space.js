@@ -166,7 +166,7 @@ export function makePlumes() {
     group.add(cone); cones.push(cone);
   }
   group.userData.setPower = (p, t) => {
-    mat.uniforms.uPower.value = p; mat.uniforms.uTime.value = t; group.visible = p > 0.01;
+    mat.uniforms.uPower.value = p; mat.uniforms.uTime.value = t; group.visible = p > 0.01; group.userData.power = p;
     const len = 0.5 + 1.6 * p;
     for (const cone of cones) { cone.scale.set(1, len, 1); cone.position.x = -2.12 - 0.5 * len; }
   };
