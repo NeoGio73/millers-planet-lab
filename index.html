@@ -17,6 +17,11 @@
       <h1>Mission to Miller's planet</h1>
     </div>
     <div class="top-actions">
+      <button type="button" class="btn toggle" id="btn-holds" aria-pressed="true" title="Stop the animation each time a new equation is highlighted in the panel">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" id="ico-hold-on"><rect x="1.75" y="1.75" width="12.5" height="12.5" rx="2" fill="currentColor"/><path d="M4.5 8.2l2.3 2.3 4.7-4.9" fill="none" stroke="#0B0E11" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16" id="ico-hold-off" hidden><rect x="2.25" y="2.25" width="11.5" height="11.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+        <span>Pause at each equation</span>
+      </button>
       <button type="button" class="btn" id="btn-about">About the model</button>
       <button type="button" class="btn" id="btn-full">
         <svg aria-hidden="true" width="16" height="16" viewBox="0 0 16 16"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -77,6 +82,7 @@
           <button type="button" class="round" id="btn-play" aria-label="Play">
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" id="ico-play"><path d="M6 3.5v11l9-5.5z" fill="currentColor"/></svg>
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" id="ico-pause" hidden><path d="M5.5 3.5v11M12.5 3.5v11" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+            <span class="label">Continue</span>
           </button>
           <label class="sr-only" for="scrub">Position within this beat</label>
           <input type="range" id="scrub" min="0" max="1000" step="1" value="0">

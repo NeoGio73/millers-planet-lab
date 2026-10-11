@@ -214,8 +214,10 @@ async function boot() {
 
   function sync() {
     const i = director.beat, last = i === BEATS.length - 1, ended = director.p >= 1 && !director.playing;
+    const held = director.held && !director.playing;
     $('ico-play').toggleAttribute('hidden', director.playing); $('ico-pause').toggleAttribute('hidden', !director.playing);
-    btnPlay.setAttribute('aria-label', director.playing ? 'Pause' : 'Play');
+    btnPlay.classList.toggle('held', held);
+    btnPlay.setAttribute('aria-label', director.playing ? 'Pause' : held ? 'Continue' : 'Play');
     beatButtons.forEach((b, k) => { b.classList.toggle('done', k < i); b.classList.toggle('current', k === i); if (k === i) b.setAttribute('aria-current', 'step'); else b.removeAttribute('aria-current'); });
     $('beat-count').textContent = `Beat ${i + 1} of ${BEATS.length}`;
     $('beat-name').textContent = BEATS[i].name;
@@ -232,9 +234,24 @@ async function boot() {
     begin();
     if (director.playing) director.playing = false;
     else if (director.p >= 1) return next();
-    else director.playing = true;
+    else { director.playing = true; director.held = false; }
     sync();
   }
+  director.onHold = () => sync();
+
+  // pausing at each equation: on unless the viewer (or an instructor at a projector) turns it off; remembered per browser
+  const btnHolds = $('btn-holds');
+  try { const saved = localStorage.getItem('mpl.pauseAtEquations'); if (saved !== null) director.pauseAtEquations = saved === '1'; } catch (e) { /* storage unavailable */ }
+  function syncHolds() {
+    btnHolds.setAttribute('aria-pressed', String(director.pauseAtEquations));
+    $('ico-hold-on').toggleAttribute('hidden', !director.pauseAtEquations); $('ico-hold-off').toggleAttribute('hidden', director.pauseAtEquations);
+  }
+  btnHolds.addEventListener('click', () => {
+    director.pauseAtEquations = !director.pauseAtEquations;
+    try { localStorage.setItem('mpl.pauseAtEquations', director.pauseAtEquations ? '1' : '0'); } catch (e) { /* storage unavailable */ }
+    syncHolds();
+  });
+  syncHolds();
   director.onBeatChange = () => panel.beatChanged();
   director.onBeatEnd = () => sync();
   btnPlay.addEventListener('click', togglePlay);
@@ -365,6 +382,7 @@ async function boot() {
   }
 
   // ---- render loop ----
+  const HELD_CAPTION = 'Paused on a new equation. Read the card marked <b>Now</b> in the physics panel, then press <b>Continue</b>.';
   const sim = { freeze: false };
   // On a high-density screen with a modest graphics chip, step the resolution down until the animation runs smoothly.
   let slowTime = 0, frames = 0;
@@ -393,8 +411,10 @@ async function boot() {
     updateLabels(out);
     panel.setFocus(director.focus);
     panel.update(out.mission, { world: out.world, waveDistance: out.waveDistance, rangerDist: Math.hypot(surface.ranger.rig.position.x, surface.ranger.rig.position.z, surface.ranger.rig.position.y) });
-    const cap = director.realTime && director.onSurface ? listenNoteText() : director.caption;   // real time explains itself
-    if (cap !== lastCaption) { lastCaption = cap; caption.textContent = cap; }
+    // while stopped at a new equation the caption says why; in real time it explains real time; otherwise it narrates
+    const held = director.held && !director.playing;
+    const cap = held ? HELD_CAPTION : director.realTime && director.onSurface ? listenNoteText() : director.caption;
+    if (cap !== lastCaption) { lastCaption = cap; if (held) caption.innerHTML = cap; else caption.textContent = cap; }
     const sv = Math.round(director.p * 1000);
     if (sv !== lastScrub) { lastScrub = sv; scrub.value = String(sv); }
     requestAnimationFrame(tick);

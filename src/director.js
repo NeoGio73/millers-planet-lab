@@ -14,7 +14,7 @@ export const BEATS = [
     captions: [[0, 'Through the cloud deck and down toward a shallow ocean.'], [0.84, 'Touchdown. From here every hour costs seven years on Earth.']] },
   { id: 'wave', name: 'The wave', dur: 36, focus: [[0, 'tidal'], [0.14, 'speed'], [0.3, 'sound'], [0.62, 'surface'], [0.82, 'redshift']], labels: ['ranger', 'wave'],
     captions: [[0, 'Those are not mountains. A wave tall enough to vanish into the cloud deck is closing in.'], [0.4, 'The wave lifts the Ranger up its face and into the clouds.'], [0.62, 'Engines flooded. Every minute spent waiting for them to drain costs 42.6 days on Earth.'], [0.88, 'Another wave is on the horizon.']] },
-  { id: 'ascent', name: 'Ascent', dur: 24, focus: [[0, 'rocket'], [0.14, 'loudness'], [0.32, 'escape'], [0.62, 'link']], labels: ['ranger', 'wave'],
+  { id: 'ascent', name: 'Ascent', dur: 24, focus: [[0, 'rocket'], [0.14, 'loudness'], [0.38, 'escape'], [0.62, 'link']], labels: ['ranger', 'wave'],
     captions: [[0, 'Engines drained, the Ranger lifts off ahead of the next wave.'], [0.3, (params) => `Climbing away. Leaving the planet takes ${(P.vEscPlanet(params.planetRadius) / 1000).toFixed(1)} km/s, and Gargantua’s pull is far stronger still.`], [0.72, 'The Endurance is ahead. The Ranger’s clock is running fast again.']] },
   { id: 'reunion', name: 'Reunion', dur: 16, focus: [[0, 'integral']], labels: ['gargantua', 'endurance', 'ranger'],
     captions: [[0, 'Matching the Endurance’s spin to dock. A few hours have passed for the Ranger’s crew.'], [0.6, 'For Romilly, waiting aboard the Endurance, it has been more than twenty years.']] },
@@ -36,6 +36,8 @@ function quatFacing(forward, up, out = new THREE.Quaternion()) {
   _m.lookAt(forward, ZERO, up);
   return out.setFromRotationMatrix(_m);
 }
+
+const HOLD_BEFORE = 0.8;   // equations that come into focus later than this in a beat get no stop of their own
 
 // ---- the wave beat's clockwork -------------------------------------------------------------------------
 export const LAND_MIN = 10;                 // surface minutes covered by the landing beat
@@ -71,6 +73,9 @@ export class Director {
     this.out = { world: 'space', fade: 0, phase: 'pre', s: 0, viewerX: params.xE, labels: [], cloudTime: 0, waveDistance: 0 };
     this.lastP = 0;
     this.realTime = false;     // on the surface: play at the crew's true pace
+    this.pauseAtEquations = true;   // stop when a new equation comes into focus, until the student continues
+    this.held = false;              // stopped at an equation
+    this.onHold = null;
 
     // geometry shared by the space beats
     this.axis = SPACE.enduranceAxis.clone();
@@ -103,13 +108,13 @@ export class Director {
   goto(beat, p = 0) {
     beat = Math.max(0, Math.min(BEATS.length - 1, beat));
     const changed = beat !== this.beat;
-    this.beat = beat; this.p = clamp01(p); this.lastP = this.p;
+    this.beat = beat; this.p = clamp01(p); this.lastP = this.p; this.held = false;
     this.look.yaw = 0; this.look.pitch = 0; this.look.zoom = 1;
     if (changed) this.realTime = false;
     this.surface.spray.clear();
     if (changed && this.onBeatChange) this.onBeatChange(this.beat);
   }
-  seek(p) { this.p = clamp01(p); this.lastP = this.p; }
+  seek(p) { this.p = clamp01(p); this.lastP = this.p; this.held = false; }
   /** True while the current beat shows the Ranger on the surface, where real time applies. */
   get onSurface() { const id = BEATS[this.beat].id; return id === 'landing' || id === 'wave'; }
   /** Surface minutes (on the crew's clock) at progress p of the current beat. */
@@ -138,7 +143,18 @@ export class Director {
         const e = 1e-4, a = Math.min(this.p, 1 - e), slope = (this.surfaceMinutesAt(a + e) - this.surfaceMinutesAt(a)) / e;
         if (slope > 0) dp = dt / 60 / slope;
       }
+      const before = this.p;
       this.p += dp;
+      // a new equation comes into focus: stop on it so it can be read. Near the end of a beat the beat's own stop does this.
+      if (this.pauseAtEquations) {
+        for (const [at] of b.focus) {
+          if (at > 0 && at <= HOLD_BEFORE && before < at && this.p >= at) {
+            this.p = at; this.playing = false; this.held = true;
+            if (this.onHold) this.onHold();
+            break;
+          }
+        }
+      }
       if (this.p >= 1) { this.p = 1; this.playing = false; this.realTime = false; if (this.onBeatEnd) this.onBeatEnd(this.beat); }
     }
     const o = this.out; o.fade = 0; o.labels = b.labels; o.cloudTime = time; o.waveDistance = 0;

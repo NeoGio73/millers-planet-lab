@@ -13,7 +13,7 @@ An interactive 3D simulation for a calculus-based college physics course, built 
 | 5. Ascent | Back up to the Endurance | Rocket equation, loudness and distance, escape velocity, the link to the clocks |
 | 6. Reunion | Docking: hours for the crew, 23 years for Romilly | The whole-trip integral |
 
-**The equation in focus.** As the animation runs, the panel opens the tab and highlights the card (marked *Now*) that explains what is on screen. Under each formula, a live line works it out with the current values, for example √(1 − 1/40.6) = 0.9876 during the descent. If a student picks a tab or scrolls the panel, it leaves them alone until the next beat.
+**The equation in focus.** As the animation runs, the panel opens the tab and highlights the card (marked *Now*) that explains what is on screen. Under each formula, a live line works it out with the current values, for example √(1 − 1/40.6) = 0.9876 during the descent. If a student picks a tab or scrolls the panel, it leaves them alone until the next beat. The animation pauses at each new equation until the student presses *Continue*; the *Pause at each equation* switch in the top bar turns this off (for running it straight through on a projector), and the browser remembers the choice.
 
 **Four formula tabs.** *Time dilation* (with Earth time as an integral, the surface factor and gravitational redshift), *Escape velocity*, *The wave* (tides and wave speed) and *Flight & sound* (hovering fuel, the rocket equation, the speed of sound, and loudness against distance).
 

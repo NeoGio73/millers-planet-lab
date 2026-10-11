@@ -84,6 +84,13 @@ svg[hidden] { display: none; }
 .scrub { display: flex; align-items: center; gap: 12px; }
 .round { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; padding: 0; border: none; border-radius: 50%; background: var(--amber); color: var(--ground); cursor: pointer; }
 .round:hover { background: #EDB750; }
+.round .label { display: none; }
+/* stopped at a new equation: the play button becomes a pulsing Continue */
+.round.held { width: auto; gap: 8px; padding: 0 20px 0 16px; border-radius: 24px; animation: held-pulse 1.8s ease-in-out infinite; }
+.round.held .label { display: inline; font-size: 16px; font-weight: 600; }
+@keyframes held-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(227, 165, 53, 0.55); } 50% { box-shadow: 0 0 0 9px rgba(227, 165, 53, 0); } }
+#caption b { font-weight: 600; color: var(--amber); }
+.btn.toggle[aria-pressed=true] svg { color: var(--amber); }
 .btn.sound { padding: 0 12px; }
 .btn.sound[aria-pressed=true] { border-color: var(--amber); background: rgba(227, 165, 53, 0.16); }
 .silence { left: 24px; bottom: 20px; padding: 7px 11px; background: rgba(8, 11, 14, 0.74); border-radius: 4px; font-size: 14px; color: var(--ink2); }
@@ -213,4 +220,5 @@ dialog li strong { color: var(--ink); font-weight: 600; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tag, .hint, #loading-bar, .card { transition: none; }
+  .round.held { animation: none; }
 }
